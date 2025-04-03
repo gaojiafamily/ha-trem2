@@ -1,0 +1,19 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Monitoring region or Exptech subscribe plan is already configured."
+    },
+    "error": {
+      "already_in_progress": "Please wait for it to finish before retry for config flow.",
+      "unknown": "Unexpected error."
+    },
+    "flow_title": "Taiwan Real-time Earthquake Monitoring"
+  },
+  "options": {
+    "error": {
+      "already_in_progress": "Please wait for it to finish before retry for config flow.",
+      "unknown": "Unexpected error."
+    },
+    "flow_title": "Taiwan Real-time Earthquake Monitoring"
+  }
+}

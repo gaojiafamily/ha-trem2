@@ -1,0 +1,15 @@
+{
+  "codeowners": ["@J1A-T13N"],
+  "domain": "trem2",
+  "name": "Taiwan Real-time Earthquake Monitoring 2",
+  "version": "1.0.0",
+  "config_flow": true,
+  "documentation": "https://github.com/gaojiafamily/ha-trem2/blob/master/README.md",
+  "issue_tracker": "https://github.com/gaojiafamily/ha-trem2/issues",
+  "requirements": ["cairosvg", "defusedxml", "segno", "svg2rlg", "svglib", "reportlab"],
+  "iot_class": "cloud_polling",
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": []
+}

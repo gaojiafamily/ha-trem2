@@ -1,10 +1,10 @@
 {
-    "name": "Taiwan Real-time Earthquake Monitoring",
+    "name": "Taiwan Real-time Earthquake Monitoring 2",
     "render_readme": true,
     "domain": "trem",
-    "documentation": "https://github.com/gaojiafamily/ha-trem",
-    "issue_tracker": "https://github.com/gaojiafamily/ha-trem/issues",
-    "homeassistant": "2024.3.0",
+    "documentation": "https://github.com/gaojiafamily/ha-trem2",
+    "issue_tracker": "https://github.com/gaojiafamily/ha-trem2/issues",
+    "homeassistant": "2025.1.0",
     "zip_release": true,
-    "filename": "trem.zip"
+    "filename": "trem2.zip"
 }

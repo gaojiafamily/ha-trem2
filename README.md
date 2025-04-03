@@ -1,7 +1,5 @@
 <h1 align="center">Taiwan Real-time Earthquake Monitoring for HA</h1>
 
-![Logo](https://raw.githubusercontent.com/gaojiafamily/ha-trem2/master/docs/media/logo.png)
-
 [![GitHub Release][releases-shield]][releases]
 [![hacs_custom][hacs_custom_shield]][hacs_custom]
 [![License][license-shield]](LICENSE)
@@ -18,17 +16,12 @@ English | [繁體中文](README_zhHant.md)<br>
 
 
 ## Screenshots
-
-
-
-<hr>
-<br>
-
+![trem2_preview](https://github.com/user-attachments/assets/a1081fd4-baef-476c-bc48-ef823774edc4)
 
 > [!IMPORTANT]
->The source of earthquake early warning is provided by ExpTech Studio and is for reference only.<br>
->The actual results are subject to the content published by [CWA](https://scweb.cwa.gov.tw/en-US).
->Some features require a subscription to the Enhanced Computing Service ("ECS").
+> The source of earthquake early warning is provided by ExpTech Studio and is for reference only.<br>
+> The actual results are subject to the content published by [CWA](https://scweb.cwa.gov.tw/en-US).<br>
+> Some features require a subscription to the Enhanced Computing Service ("ECS").
 
 <hr>
 <br>
@@ -36,7 +29,7 @@ English | [繁體中文](README_zhHant.md)<br>
 
 ## Feature
 
-- [x] Isoseismal map image (Can also be saved as file).
+- [x] Isoseismal map image.
 - [ ] Simulator earthquake service.
 - [ ] Calculate arrival forecast based on your location (ECS only).
 - [ ] RTS Notification (Exptech VIP only).
@@ -46,10 +39,23 @@ English | [繁體中文](README_zhHant.md)<br>
 <br>
 
 
+## Prerequisite
+
+> [!IMPORTANT]
+> Before installing this integration, please ensure your environment meets the necessary requirements for dependencies and fonts.
+> Detailed instructions are provided in the [Prerequisite Documentation](Prerequisite.md).
+
+> [!NOTE]
+> We are actively working on a proposal to pre-install these dependencies in the Home Assistant Core.
+> This will reduce manual setup requirements. See [Community Proposal](#community-proposal-pre-install-dependencies-in-home-assistant-core) for details.
+
+<hr>
+<br>
+
 ## Installation
 
 ### Using [HACS](https://hacs.xyz/) (recommended)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=gaojiafamily&repository=ha-trem&category=Integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=gaojiafamily&repository=ha-trem2&category=Integration)
 
 ### Manual
 1. Create `config/custom_components` folder if not existing.
@@ -77,17 +83,46 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 - [ ] Custom server (ECS only)
 
 
-## Known issues
-
 <hr>
+<br>
+
+## Known issues
+- [ ] Todo: [Pre-install Dependencies in Home Assistant Core](#community-proposal-pre-install-dependencies-in-home-assistant-core)
+
 <br>
 
 *An API server can be monitored [here](https://status.exptech.dev).*
 
+<hr>
+<br>
+
+
+## Community Proposal: Pre-install Dependencies in Home Assistant Core
+
+To simplify the installation process for users and developers, we propose adding the following dependencies to the default Home Assistant Core:
+
+### System-level Dependencies:
+- **cairo**: Required for font rendering and SVG processing.
+
+### Benefits:
+1. Reduces manual setup steps, especially for non-technical users.
+2. Ensures compatibility with integrations and custom components that rely on these dependencies.
+3. Enhances developer productivity by providing a ready-to-use environment.
+
+### Next Steps:
+We plan to submit this proposal to the Home Assistant GitHub repository as a Feature Request. This will include testing results and detailed reasoning to support the inclusion of these dependencies in the official Docker image.
+
+<hr>
+<br>
+
 
 ### ECS/Exptech VIP
 <p>Based on the donate amount, every $15 grants six months of ECS access.</p>
-<p>You can goto [https://exptech.com.tw/pricing](https://exptech.com.tw/pricing) to subscribe Exptech VIP.</p>
+
+> [!NOTE]
+> ECS access will be released soon.
+
+<p>You can goto https://exptech.com.tw/pricing to subscribe Exptech VIP.</p>
 <br>
 
 <hr>
@@ -115,8 +150,8 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 
 
 ## License
-This is an open-source client tool licensed under the AGPL-3.0 license, allowing anyone to freely use, modify, and distribute it.
-This tool requires a subscription to use our enhanced computing service.
+This is an open-source client tool licensed under the AGPL-3.0 license, allowing anyone to freely use, modify, and distribute it.<br>
+This tool requires a subscription to use our enhanced computing service.<br>
 **2024-08-15 Agreement reached with ExpTech Studio.**
 
 
