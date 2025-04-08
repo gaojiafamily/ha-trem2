@@ -1,0 +1,33 @@
+constants:
+  simulator_data: &simulator_data '[{"author":"cwa","id":"1140889","serial":4,"status":0,"final":0,"eq":{"time":1744245063000,"lon":121.29,"lat":23.43,"depth":23.2,"mag":4.3,"loc":"花蓮縣政府南南西方 70.3 公里 (位於花蓮縣卓溪鄉)","max":3},"time":1744245063000}]'
+
+save2file:
+  name: "Save Image"
+  description: "Save the image from an ImageEntity to a file."
+  fields:
+    entity_id:
+      required: true
+      name: "Entity"
+      description: "Identifier of the image entity."
+      example: "image.trem_monitoring"
+      selector:
+        entity:
+          integration: trem2
+          domain: image
+    filename:
+      name: "Filename"
+      description: "The image use a relative path, will be saved in the folder of configuration.yaml."
+      example: "www/1140889-4.png"
+      selector:
+        text:
+
+simulator:
+  name: "Simulating Earthquake"
+  description: "Simulate an earthquake event."
+  fields:
+    data:
+      name: "Earthquake Data"
+      description: "Please refer to the example data, To stop simulation, check and `leave empty`."
+      example: *simulator_data
+      selector:
+        text:

@@ -7,8 +7,7 @@ from .const import COUNTY_CENTERS, COUNTY_SITE_VALUES, EARTH_RADIUS, TAIWAN_CENT
 
 
 def calculate_distance(lat1, lon1, lat2, lon2) -> float:
-    """Calculate the distance between two points on the Earth using the Haversine formula."""
-
+    """Calculate the distance between two points using the Haversine formula."""
     lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
     dlat = lat2 - lat1
     dlon = lon2 - lon1
@@ -20,8 +19,7 @@ def calculate_distance(lat1, lon1, lat2, lon2) -> float:
 def calculate_intensity(
     magnitude: float, hypocenter_distance: float, depth: int, site_effect: float = 1.751
 ) -> float:
-    """Calculate the intensity of an earthquake based on its magnitude, hypocenter distance, and depth."""
-
+    """Calculate the intensity of an earthquake."""
     pga = (
         1.657
         * math.exp(1.533 * magnitude)
@@ -50,7 +48,6 @@ def calculate_intensity(
 
 def round_intensity(intensity: float) -> int:
     """Round the intensity to the nearest whole number based on specific thresholds."""
-
     if intensity <= 0:
         return 0
     if intensity < 4.5:
@@ -69,7 +66,6 @@ def round_intensity(intensity: float) -> int:
 
 def intensity_to_text(intensity) -> str:
     """Convert intensity to text on specific thresholds."""
-
     if isinstance(intensity, float):
         intensity = round_intensity(intensity)
 
@@ -97,7 +93,6 @@ def intensity_to_text(intensity) -> str:
 
 def get_calculate_intensity(eq_data: dict) -> dict:
     """Calculate the intensity of an earthquake based on its data."""
-
     depth = eq_data.get("depth", 0)
     lat = eq_data.get("lat", TAIWAN_CENTER[0])
     lon = eq_data.get("lon", TAIWAN_CENTER[1])

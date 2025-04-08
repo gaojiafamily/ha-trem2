@@ -30,24 +30,10 @@
 ## 功能
 
 - [x] 等震線圖影像
-- [ ] 模擬地震服務
+- [x] 模擬地震服務
 - [ ] 根據您的位置預測抵達時間 (僅限 ECS)
 - [ ] RTS 通知 (僅限 Exptech VIP)
 - [ ] 海嘯通知 (僅限 Exptech VIP)
-
-<hr>
-<br>
-
-
-## 先決條件
-
-> [!IMPORTANT]
-> 在安裝此整合之前，請確保您的環境符合依賴項和字體的必要要求。
-> 詳細說明請見 [文檔](Prerequisite_zhHant.md).
-
-> [!NOTE]
-> 我們正在積極制定提案，在 Home Assistant Core 中預先安裝這些依賴項。
-> 這將減少手動設定要求，詳情請看[提案](#community-proposal-pre-install-dependencies-in-home-assistant-core)。
 
 <hr>
 <br>
@@ -87,7 +73,7 @@
 <br>
 
 ## 已知問題
-- [ ] Todo: [Pre-install Dependencies in Home Assistant Core](#community-proposal-pre-install-dependencies-in-home-assistant-core)
+- [x] QR Code 不正確
 
 <br>
 
@@ -97,27 +83,8 @@
 <br>
 
 
-## Community Proposal: Pre-install Dependencies in Home Assistant Core
-
-為了簡化使用者和開發人員的安裝流程，我們建議在預設的 Home Assistant Core 中新增以下相依性：
-
-### 系統層依賴:
-- **cairo**: 字體渲染和 SVG 處理所需
-
-### 優點:
-1. 減少手動設定步驟，特別是對於非技術用戶
-2. 確保與依賴這些依賴項的整合和自訂組件的兼容性
-3. 透過提供可立即使用的環境來提高開發人員的工作效率
-
-### 後續作業:
-我們計劃將此提案作為功能請求提交給 Home Assistant GitHub 儲存庫。
-
-<hr>
-<br>
-
-
 ### ECS/Exptech VIP
-<p>根據您的贊助金額，每 $15 可以獲得半年 ECS 授權.</p>
+~~根據您的贊助金額，每 $15 可以獲得半年 ECS 授權.~~
 
 > [!NOTE]
 > ECS 功能將於近期推出
@@ -149,10 +116,37 @@
 <br>
 
 
-## License
-這是一個開源客戶端工具，採用 AGPL-3.0 許可證，允許任何人自由使用、修改和分發<br>
-此工具需要訂閱才能使用我們的增強運算服務<br>
-**2024-08-15 與 ExpTech Studio 達成協議**
+## 授權
+1. 這是一個開源客戶端工具，採用 AGPL-3.0 許可證，允許任何人自由使用、修改和分發
+2. 此工具需要訂閱才能使用我們的增強運算服務
+
+> **2024-08-15 與 ExpTech Studio 達成協議**
+
+<hr>
+<br>
+
+
+## 字體授權摘要
+- **署名要求**:
+  - Noto Sans TC 字體由 Google 及其他貢獻者開發。更多資訊請參閱 [Google Fonts](https://fonts.google.com/specimen/Noto+Sans+TC)
+- **使用方式**:
+  - 字體文件（NotoSansTC-Regular.ttf）將複製至使用者的字體目錄
+- **授權許可範圍**:
+  - 商業用途
+  - 修改
+  - 分發
+  - 個人使用
+- **限制條款**:
+  - 無擔保
+  - 責任限制
+- **強制條件**:
+  - 必須包含授權條款及版權聲明於授權內容中
+  - 修改後的衍生作品必須以相同授權條款釋出
+
+> [!INFO]
+> 本存儲庫包含的 Noto Sans TC 字體僅限用於本項目內
+> 若需於本存儲庫外發佈此字體，必須遵守 SIL 開放字體授權條款 規定
+> 完整條款詳見 [SIL Open Font License](https://scripts.sil.org/OFL)
 
 
 [releases-shield]: https://img.shields.io/github/release/gaojiafamily/ha-trem2.svg?style=for-the-badge
