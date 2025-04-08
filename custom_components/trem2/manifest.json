@@ -1,15 +1,24 @@
 {
-  "codeowners": ["@J1A-T13N"],
+  "codeowners": ["@jayx1011"],
   "domain": "trem2",
   "name": "Taiwan Real-time Earthquake Monitoring 2",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "config_flow": true,
   "documentation": "https://github.com/gaojiafamily/ha-trem2/blob/master/README.md",
   "issue_tracker": "https://github.com/gaojiafamily/ha-trem2/issues",
-  "requirements": ["cairosvg", "defusedxml", "segno", "svg2rlg", "svglib", "reportlab"],
+  "requirements": [
+    "pyvips",
+    "pyvips-binary",
+    "defusedxml",
+    "segno",
+    "svg2rlg",
+    "svglib",
+    "reportlab"
+  ],
   "iot_class": "cloud_polling",
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
-  "dependencies": []
+  "dependencies": [],
+  "integration_type": "entity"
 }

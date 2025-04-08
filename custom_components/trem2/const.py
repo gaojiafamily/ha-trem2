@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 # Initialize
 CONF_NAME = "name"
 DEFAULT_NAME = "TREM"
-DEFAULT_ICON = "mdi:waveform"
 DOMAIN = "trem2"
 PLATFORMS = ["image", "sensor"]
 
@@ -14,9 +13,10 @@ PLATFORMS = ["image", "sensor"]
 CLIENT_NAME = "HA-TREM2"
 PROJECT_URL = "https://github.com/gaojiafamily/ha-trem2"
 ISSUE_URL = f"{PROJECT_URL}/issues"
+OFFICIAL_URL = "https://www.gj-smart.com"
 
 # Version
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # Timezone
 TZ_TW = ZoneInfo("Asia/Taipei")
@@ -24,6 +24,8 @@ TZ_UTC = UTC
 
 # General sensor attributes
 ATTRIBUTION = "本訊息僅提供應變參考，因時效需求存在不準確性。"
+ATTR_SAVE2FILE = "filename"
+ATTR_DATA = "data"
 ATTR_ID = "serial"
 ATTR_AUTHOR = "provider"
 ATTR_LNG = "longitude"
@@ -56,7 +58,7 @@ ATTR_COUNTY = {
     "TWTTT": "臺東縣",
     "TWYUN": "雲林縣",
 }
-EARTHQUAKE_ATTR = [
+NOTIFICATION_ATTR = [
     ATTR_ID,
     ATTR_AUTHOR,
     ATTR_LNG,
@@ -75,6 +77,7 @@ UPDATE_LISTENER = "update_listener"
 
 # Stored
 STORAGE_EEW = f"{DOMAIN}/recent_data.json"
+STORAGE_REPORT = f"{DOMAIN}/report.json"
 STORAGE_TOKEN = f"{DOMAIN}/token.json"
 
 # REST
@@ -85,26 +88,27 @@ BASE_URLS = {
     "taipei": "https://lb-1.exptech.dev",
     "pingtung": "https://lb-2.exptech.dev",
 }
+REPORT_URL = "https://api.exptech.dev/api/v2/eq/report/"
 REQUEST_TIMEOUT = 30  # seconds
 
 # STRINGS
 EXAMPLE = [
     {
-        "author": "CWA",
-        "id": "114081",
-        "serial": 1,
+        "author": "cwa",
+        "id": "1140890",
+        "serial": 0,
         "status": 0,
-        "final": 1,
+        "final": 0,
         "eq": {
-            "time": 1743772323000,
-            "lon": 121.53,
-            "lat": 24.1,
-            "depth": 20.7,
-            "mag": 4.3,
-            "loc": "花蓮縣政府西北方 15.0 公里 (位於花蓮縣秀林鄉)",
-            "max": 3,
+            "time": 1744412470000,
+            "lon": 121.81,
+            "lat": 24.57,
+            "depth": 66.9,
+            "mag": 3.9,
+            "loc": "宜蘭縣政府南南東方 18.5  公里 (位於宜蘭縣蘇澳鎮)",
+            "max": 1,
         },
-        "time": 1743772323000,
+        "time": 1744412470000,
     }
 ]
 STARTUP = f"""
