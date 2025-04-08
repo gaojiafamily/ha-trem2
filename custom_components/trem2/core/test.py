@@ -7,7 +7,7 @@ from .map import draw
 
 # 地震資料
 EARTHQUAKE_DATA = {
-    "author": "CWA",
+    "author": "cwa",
     "id": "114078",
     "serial": 1,
     "status": 0,

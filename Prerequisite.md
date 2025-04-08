@@ -16,7 +16,7 @@
 login
 docker exec -it homeassistant bash
 ```
-![image](https://github.com/J1A-T13N/ha-trem/assets/29163857/36748f45-03c1-4f3e-814e-cd54167606b7)
+![image](https://github.com/jayx1011/ha-trem/assets/29163857/36748f45-03c1-4f3e-814e-cd54167606b7)
 6. Paste the following commands into the terminal to install fonts and dependencies:
 ```bash
 apk add cairo
@@ -26,7 +26,7 @@ fc-cache -fv
 fc-list
 ```
 
-![image](https://github.com/J1A-T13N/ha-trem/assets/29163857/b207f304-65bd-4ed2-aefb-60caf51f412c)
+![image](https://github.com/jayx1011/ha-trem/assets/29163857/b207f304-65bd-4ed2-aefb-60caf51f412c)
 8. everything is successful, proceed with the [configuration process](../README.md#config)
 
 > [!NOTE]

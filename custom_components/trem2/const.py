@@ -14,6 +14,7 @@ PLATFORMS = ["image", "sensor"]
 CLIENT_NAME = "HA-TREM2"
 PROJECT_URL = "https://github.com/gaojiafamily/ha-trem2"
 ISSUE_URL = f"{PROJECT_URL}/issues"
+OFFICIAL_URL = "https://www.gj-smart.com"
 
 # Version
 __version__ = "1.0.0"
@@ -56,7 +57,7 @@ ATTR_COUNTY = {
     "TWTTT": "臺東縣",
     "TWYUN": "雲林縣",
 }
-EARTHQUAKE_ATTR = [
+NOTIFICATION_ATTR = [
     ATTR_ID,
     ATTR_AUTHOR,
     ATTR_LNG,

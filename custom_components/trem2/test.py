@@ -65,8 +65,8 @@ if element is not None:
 
         # 轉換為字串
         qrcode = ET.tostring(qr_element, encoding="unicode")
-        print(qrcode)
+        print(qrcode)  # noqa: T201
     else:
-        print("找不到 QR Code 元素")
+        print("找不到 QR Code 元素")  # noqa: T201
 else:
-    print("建立 QR Code 失敗")
+    print("建立 QR Code 失敗")  # noqa: T201

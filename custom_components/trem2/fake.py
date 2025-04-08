@@ -11,17 +11,27 @@ import uvicorn
 app = FastAPI()
 
 content = []
-eq_id = 114000
+
+
+class State:
+    """State."""
+
+    def __init__(self) -> None:
+        """Initialize the state."""
+        self.eq_id = 1140000
+
+    def update_eq_id(self, new_value):
+        """Update the eq_id."""
+        self.eq_id = new_value
 
 
 def publish_earthquake_data() -> int:
     """Publish earthquake data."""
-
+    state = State()
     time.sleep(15)
-    global eq_id
-    eq_id += 1
+    state.update_eq_id(state.eq_id + 1)
     earthquake_data = {
-        "id": eq_id,
+        "id": state.eq_id,
         "author": "測試資料",
         "serial": 1,
         "final": 0,
@@ -34,7 +44,7 @@ def publish_earthquake_data() -> int:
             "time": int((time.time() - 15) * 1000),
             "max": 4,
         },
-        "time": int(time.time() * 1000),  # 使用當前時間
+        "time": int(time.time() * 1000),
     }
     content.append(earthquake_data)
     while True:
@@ -60,15 +70,13 @@ def publish_earthquake_data() -> int:
 
 @app.get("/api/v2/eq/eew")
 async def get_earthquake():
-    """回應查詢請求."""
-
+    """Resp data."""
     return JSONResponse(content=content)
 
 
 @app.get("/post")
 async def post_earthquake():
-    """發佈地震速報."""
-
+    """Publish earthquake."""
     update_thread = Thread(target=publish_earthquake_data)
     update_thread.start()
 
