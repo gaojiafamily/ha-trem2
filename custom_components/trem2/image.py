@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from io import BytesIO
 import logging
 import re
 from typing import Any
 
-from cairosvg import svg2png
+from pyvips import Image
 
 from homeassistant.components.image import ImageEntity
 from homeassistant.config_entries import ConfigEntry
@@ -112,6 +113,8 @@ class monitoring_image(ImageEntity):
 
     async def _update_callback(self):
         """Handle updated data from the coordinator."""
+        hass_config = self.hass.config
+
         # Get the latest notification data
         notification = await self.get_eew_data()
         notification_id = []
@@ -133,30 +136,26 @@ class monitoring_image(ImageEntity):
             if round_intensity(v) > 0
         }
 
-        # Create a BytesIO object to store the PNG data
-        bg_path = self.hass.config.path(f"custom_components/{DOMAIN}/assets/brand.svg")
-        svg_data = draw_isoseismal_map(
+        # Draw the isoseismal map
+        assets_path = f"custom_components/{DOMAIN}/assets"
+        bg_path = hass_config.path(f"{assets_path}/brand.svg")
+        font_path = hass_config.path(f"{assets_path}/NotoSansTC-Regular.ttf")
+        svg_cont = draw_isoseismal_map(
             notification,
             intensitys,
             bg_path,
             OFFICIAL_URL,
+            font_path,
         )
 
         # Remove BOM and decode the SVG data
-        svg_data_clean = svg_data.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
-        bytestring = svg_data_clean.decode("utf-8")
+        svg_byte = svg_cont.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
 
-        # Convert SVG to PNG
-        output = BytesIO()
-        svg2png(
-            bytestring=bytestring,
-            write_to=output,
-            output_width=1000,
-            output_height=1000,
-        )
+        svg_data: Image = await asyncio.to_thread(Image.new_from_buffer, svg_byte, "")
+        output = await asyncio.to_thread(svg_data.write_to_buffer, ".png")
 
         # Store the PNG data in the _cached_image
-        self._cached_image = output.getvalue()
+        self._cached_image = output
         self._attr_image_last_updated = dt_util.utcnow()
 
         # Update the _cached_image_id
