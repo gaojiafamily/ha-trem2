@@ -30,24 +30,10 @@ English | [繁體中文](README_zhHant.md)<br>
 ## Feature
 
 - [x] Isoseismal map image.
-- [ ] Simulator earthquake service.
+- [x] Simulator earthquake service.
 - [ ] Calculate arrival forecast based on your location (ECS only).
 - [ ] RTS Notification (Exptech VIP only).
 - [ ] Tsunami Notification (Exptech VIP only).
-
-<hr>
-<br>
-
-
-## Prerequisite
-
-> [!IMPORTANT]
-> Before installing this integration, please ensure your environment meets the necessary requirements for dependencies and fonts.
-> Detailed instructions are provided in the [Prerequisite Documentation](Prerequisite.md).
-
-> [!NOTE]
-> We are actively working on a proposal to pre-install these dependencies in the Home Assistant Core.
-> This will reduce manual setup requirements. See [Community Proposal](#community-proposal-pre-install-dependencies-in-home-assistant-core) for details.
 
 <hr>
 <br>
@@ -87,7 +73,7 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 <br>
 
 ## Known issues
-- [ ] Todo: [Pre-install Dependencies in Home Assistant Core](#community-proposal-pre-install-dependencies-in-home-assistant-core)
+- [x] QR Code invalid.
 
 <br>
 
@@ -97,27 +83,8 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 <br>
 
 
-## Community Proposal: Pre-install Dependencies in Home Assistant Core
-
-To simplify the installation process for users and developers, we propose adding the following dependencies to the default Home Assistant Core:
-
-### System-level Dependencies:
-- **cairo**: Required for font rendering and SVG processing.
-
-### Benefits:
-1. Reduces manual setup steps, especially for non-technical users.
-2. Ensures compatibility with integrations and custom components that rely on these dependencies.
-3. Enhances developer productivity by providing a ready-to-use environment.
-
-### Next Steps:
-We plan to submit this proposal to the Home Assistant GitHub repository as a Feature Request. This will include testing results and detailed reasoning to support the inclusion of these dependencies in the official Docker image.
-
-<hr>
-<br>
-
-
 ### ECS/Exptech VIP
-<p>Based on the donate amount, every $15 grants six months of ECS access.</p>
+<p>~~Based on the donate amount, every $15 grants six months of ECS access.~~</p>
 
 > [!NOTE]
 > ECS access will be released soon.
@@ -150,9 +117,38 @@ We plan to submit this proposal to the Home Assistant GitHub repository as a Fea
 
 
 ## License
-This is an open-source client tool licensed under the AGPL-3.0 license, allowing anyone to freely use, modify, and distribute it.<br>
-This tool requires a subscription to use our enhanced computing service.<br>
+1. This is an open-source client tool licensed under the AGPL-3.0 license, allowing anyone to freely use, modify, and distribute it.
+2. This tool requires a subscription to use our enhanced computing service.
+3. The Noto Sans TC font is licensed under the [SIL Open Font License (OFL) v1.1](https://scripts.sil.org/OFL).
+> This license allows the font to be freely used, modified, and distributed, as long as derivative works remain under the same license.
+<br>
 **2024-08-15 Agreement reached with ExpTech Studio.**
+
+<hr>
+<br>
+
+
+### Font License Summary
+- **Attribution**:
+  - The Noto Sans TC font is developed by Google and other contributors. For more information, visit [Google Fonts](https://fonts.google.com/specimen/Noto+Sans+TC).
+- **Usage**
+  - The font file (`NotoSansTC-Regular.ttf`) is copied to the user's font directory
+- **Permissions**:
+  - Commercial use
+  - Modification
+  - Distribution
+  - Private use
+- **Limitations**:
+  - No warranty
+  - Liability limitations
+- **Conditions**:
+  - A copy of the license and copyright notice must be included with the licensed material.
+  - Modifications must be released under the same license.
+
+> [!INFO]
+> This repository includes the Noto Sans TC font solely for usage within this project.
+> Redistribution of the font outside of this repository must comply with the SIL Open Font License terms.
+> For more details, please read the full [SIL Open Font License](https://scripts.sil.org/OFL).
 
 
 [releases-shield]: https://img.shields.io/github/release/gaojiafamily/ha-trem2.svg?style=for-the-badge

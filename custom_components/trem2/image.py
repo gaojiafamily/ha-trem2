@@ -1,14 +1,15 @@
-"""Custom Image Display for Home Assistant."""
+"""Initialize the ImageEntity for TREM2 component."""
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from io import BytesIO
 import logging
 import re
 from typing import Any
 
-from cairosvg import svg2png
+from pyvips import Image
 
 from homeassistant.components.image import ImageEntity
 from homeassistant.config_entries import ConfigEntry
@@ -23,13 +24,14 @@ from .const import (
     ATTRIBUTION,
     DOMAIN,
     MANUFACTURER,
+    OFFICIAL_URL,
     TREM2_COORDINATOR,
     TREM2_NAME,
     __version__,
 )
 from .core.earthquake import get_calculate_intensity, intensity_to_text, round_intensity
 from .core.map import draw as draw_isoseismal_map
-from .update_coordinator import trem2UpdateCoordinator
+from .update_coordinator import trem2_update_coordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,17 +42,16 @@ async def async_setup_entry(
     async_add_devices: Callable,
 ) -> None:
     """Set up the image entity from a config entry."""
-
     domain_data: dict = hass.data[DOMAIN][config_entry.entry_id]
     name: str = domain_data[TREM2_NAME]
-    coordinator: trem2UpdateCoordinator = domain_data[TREM2_COORDINATOR]
+    coordinator: trem2_update_coordinator = domain_data[TREM2_COORDINATOR]
 
     # Create the image entity
-    device = earthquakeImage(hass, name, config_entry, coordinator)
+    device = monitoring_image(hass, name, config_entry, coordinator)
     async_add_devices([device], update_before_add=True)
 
 
-class earthquakeImage(ImageEntity):
+class monitoring_image(ImageEntity):
     """Representation of an image entity for displaying a custom SVG image as PNG."""
 
     def __init__(
@@ -58,16 +59,15 @@ class earthquakeImage(ImageEntity):
         hass: HomeAssistant,
         name: str,
         config_entry: ConfigEntry,
-        coordinator: trem2UpdateCoordinator,
+        coordinator: trem2_update_coordinator,
     ) -> None:
         """Initialize the image entity."""
-
         super().__init__(hass)
 
         self._coordinator = coordinator
         self._hass = hass
 
-        attr_name = f"{name} Isoseismal Map"
+        attr_name = f"{name} Monitoring"
         self._attr_name = attr_name
         self._attr_unique_id = re.sub(r"\s+|@", "_", attr_name.lower())
         self._attr_content_type: str = "image/png"
@@ -76,17 +76,17 @@ class earthquakeImage(ImageEntity):
             manufacturer=MANUFACTURER,
             model="ExpTechTW TREM",
             sw_version=__version__,
-            name="Isoseismal Map",
+            name="Monitoring",
         )
         self._attributes = {}
         self._attr_value = {}
 
-        self._last_draw_id = None
-        self._last_draw: BytesIO | None = None
+        self._cached_report_id = None
+        self._cached_image_id = None
+        self._cached_image: BytesIO | None = None
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
-
         self.async_on_remove(
             self._coordinator.async_add_listener(
                 lambda: self.hass.async_create_task(self._update_callback())
@@ -94,9 +94,8 @@ class earthquakeImage(ImageEntity):
         )
 
     async def async_image(self) -> bytes | None:
-        """Draw the isoseismal map."""
-
-        return self._last_draw
+        """Draw the monitoring image."""
+        return self._cached_image
 
     @property
     def available(self):
@@ -106,7 +105,6 @@ class earthquakeImage(ImageEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes."""
-
         self._attributes = {}
         self._attributes[ATTR_ATTRIBUTION] = ATTRIBUTION
         for k, v in self._attr_value.items():
@@ -116,20 +114,33 @@ class earthquakeImage(ImageEntity):
 
     async def _update_callback(self):
         """Handle updated data from the coordinator."""
+        hass_config = self.hass.config
 
-        # Get the latest earthquake data
-        earthquake = await self.get_eew_data()
-        earthquake_id = []
-        earthquake_id.append(str(earthquake.get("id", "xxxxxx")))
-        earthquake_id.append(str(earthquake.get("serial", "x")))
+        # Get the latest notification data
+        eq_data = await self.get_eew_data()
+        report_data = await self.get_report_data()
 
-        # Check last_draw_id to avoid unnecessary updates
-        curr_draw_id = "-".join(earthquake_id)
-        if curr_draw_id == self._last_draw_id:
+        # Check _cached_image_id to avoid unnecessary updates
+        eq_id = "-".join(
+            map(
+                str,
+                (
+                    eq_data.get("id", "XXXXXXX"),
+                    eq_data.get("serial", "X"),
+                ),
+            )
+        )
+        report_id = report_data.get("id", "")
+        if eq_id == self._cached_image_id and report_id == self._cached_report_id:
             return
 
         # Calculate the intensity
-        intensitys = get_calculate_intensity(earthquake.get("eq", {}))
+        intensitys = get_calculate_intensity(
+            eq_data.get(
+                "eq",
+                await self.get_int_data(),
+            )
+        )
 
         # Write the attributes with the intensity values greater than 0
         self._attr_value = {
@@ -138,39 +149,67 @@ class earthquakeImage(ImageEntity):
             if round_intensity(v) > 0
         }
 
-        # Create a BytesIO object to store the PNG data
-        if curr_draw_id == "xxxxxx-x":
-            url = "https://www.gj-smart.com"
-            relative_path = f"custom_components/{DOMAIN}/assets/brand.svg"
+        assets_path = f"custom_components/{DOMAIN}/assets"
+        eew_time = eq_data.get("time", 0)
+        report_time = report_data.get("time", 0)
+        if report_time < eew_time:
+            bg_path = hass_config.path(f"{assets_path}/brand.svg")
+            url = OFFICIAL_URL
         else:
-            url = None
-            relative_path = f"custom_components/{DOMAIN}/assets/CWA_Logo.svg"
+            bg_path = hass_config.path(f"{assets_path}/cwa_logo.svg")
 
-        bg_path = self.hass.config.path(relative_path)
-        bytestring = draw_isoseismal_map(earthquake, intensitys, bg_path, url)
-        output = BytesIO()
+            if self.report_invalid(report_time, eew_time):
+                url = "https://cwa.gov.tw/v8/c/e/index.html"
+            else:
+                url = f"https://cwa.gov.tw/v8/c/e/eq/eq{report_id}.html"
 
-        # Convert SVG to PNG
-        svg2png(
-            bytestring=bytestring,
-            write_to=output,
-            output_width=1000,
-            output_height=1000,
+        # Draw the isoseismal map
+        svg_cont = draw_isoseismal_map(
+            intensitys,
+            eq_data,
+            eq_id,
+            bg_path,
+            url,
         )
-        self._last_draw = output.getvalue()
+
+        # Remove BOM and decode the SVG data
+        svg_byte = svg_cont.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
+
+        # Convert the SVG data to PNG using pyvips
+        svg_data: Image = await asyncio.to_thread(Image.new_from_buffer, svg_byte, "")
+        output = await asyncio.to_thread(svg_data.write_to_buffer, ".png")
+
+        # Store the PNG data in the _cached_image
+        self._cached_image = output
         self._attr_image_last_updated = dt_util.utcnow()
 
-        # Update the last_draw_id
-        self._last_draw_id = curr_draw_id
-        self._attr_value[ATTR_ID] = curr_draw_id
+        # Update the _cached_image_id
+        self._cached_report_id = report_id
+        self._cached_image_id = eq_id
+        self._attr_value[ATTR_ID] = eq_id
 
         # Update the attributes
         self.async_write_ha_state()
 
+    def report_invalid(self, t1, t2, threshold_seconds=6000):
+        """Check if the report time is valid."""
+        t1_sec = t1 // 1000
+        t2_sec = t2 // 1000
+
+        delta = abs(t1_sec - t2_sec)
+        return delta > threshold_seconds
+
     async def get_eew_data(self) -> dict:
-        """Get the latest earthquake data."""
+        """Get the latest notification data."""
+        if len(self._coordinator.earthquake_notification) > 0:
+            return self._coordinator.earthquake_notification[0]
 
-        if len(self._coordinator.earthquakeData) > 0:
-            return self._coordinator.earthquakeData[0]
+        return {}
 
-        return []
+    async def get_report_data(self) -> dict:
+        """Get the latest report data."""
+        return self._coordinator.report_data
+
+    async def get_int_data(self) -> dict:
+        """Get the latest intensity data."""
+        return self._coordinator.intensity
