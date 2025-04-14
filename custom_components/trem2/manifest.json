@@ -20,5 +20,5 @@
   "zeroconf": [],
   "homekit": {},
   "dependencies": [],
-  "integration_type": "entity"
+  "integration_type": "device"
 }
