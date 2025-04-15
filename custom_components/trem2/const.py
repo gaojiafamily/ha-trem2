@@ -17,7 +17,7 @@ ISSUE_URL = f"{PROJECT_URL}/issues"
 OFFICIAL_URL = "https://www.gj-smart.com"
 
 # Version
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 # Timezone
 TZ_TW = ZoneInfo("Asia/Taipei")
@@ -33,6 +33,7 @@ ATTR_LNG = "longitude"
 ATTR_LAT = "latitude"
 ATTR_DEPTH = "depth"
 ATTR_MAG = "magnitude"
+ATTR_LIST = "list"
 ATTR_LOC = "location"
 ATTR_TIME = "time_of_occurrence"
 ATTR_COUNTY = {
@@ -67,6 +68,7 @@ NOTIFICATION_ATTR = [
     ATTR_DEPTH,
     ATTR_MAG,
     ATTR_LOC,
+    ATTR_LIST,
     ATTR_TIME,
 ]
 MANUFACTURER = "居智科技"
@@ -93,25 +95,6 @@ REPORT_URL = "https://api.exptech.dev/api/v2/eq/report/"
 REQUEST_TIMEOUT = 30  # seconds
 
 # STRINGS
-EXAMPLE = [
-    {
-        "author": "cwa",
-        "id": "1140890",
-        "serial": 0,
-        "status": 0,
-        "final": 0,
-        "eq": {
-            "time": 1744412470000,
-            "lon": 121.81,
-            "lat": 24.57,
-            "depth": 66.9,
-            "mag": 3.9,
-            "loc": "宜蘭縣政府南南東方 18.5  公里 (位於宜蘭縣蘇澳鎮)",
-            "max": 1,
-        },
-        "time": 1744412470000,
-    }
-]
 STARTUP = f"""
 
 -------------------------------------------------------------------

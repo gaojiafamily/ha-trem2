@@ -16,27 +16,16 @@ def calculate_distance(lat1, lon1, lat2, lon2) -> float:
     return 2 * atan2(sqrt(a), sqrt(1 - a))
 
 
-def calculate_intensity(
-    magnitude: float, hypocenter_distance: float, depth: int, site_effect: float = 1.751
-) -> float:
+def calculate_intensity(magnitude: float, hypocenter_distance: float, depth: int, site_effect: float = 1.751) -> float:
     """Calculate the intensity of an earthquake."""
-    pga = (
-        1.657
-        * math.exp(1.533 * magnitude)
-        * hypocenter_distance**-1.607
-        * (site_effect or 1.751)
-    )
+    pga = 1.657 * math.exp(1.533 * magnitude) * hypocenter_distance**-1.607 * (site_effect or 1.751)
     i = 2 * math.log10(pga) + 0.7
 
     if i > 3:
         long = 10 ** (0.5 * magnitude - 1.85) / 2
         x = max(hypocenter_distance - long, 3)
         gpv600 = 10 ** (
-            0.58 * magnitude
-            + 0.0038 * depth
-            - 1.29
-            - math.log10(x + 0.0028 * 10 ** (0.5 * magnitude))
-            - 0.002 * x
+            0.58 * magnitude + 0.0038 * depth - 1.29 - math.log10(x + 0.0028 * 10 ** (0.5 * magnitude)) - 0.002 * x
         )
         arv = 1.0
         pgv400 = gpv600 * 1.31
@@ -93,13 +82,15 @@ def intensity_to_text(intensity) -> str:
 
 def get_calculate_intensity(eq_data: dict) -> dict:
     """Calculate the intensity of an earthquake based on its data."""
+    if eq_data is None:
+        return None
+
     depth = eq_data.get("depth", 0)
     lat = eq_data.get("lat", TAIWAN_CENTER[0])
     lon = eq_data.get("lon", TAIWAN_CENTER[1])
     mag = eq_data.get("mag", 0)
 
     intensity_map = {}
-
     squared_depth = depth**2
 
     for county_id, (county_lat, county_lon) in COUNTY_CENTERS.items():
@@ -107,8 +98,6 @@ def get_calculate_intensity(eq_data: dict) -> dict:
         distance_in_radians = calculate_distance(lat, lon, county_lat, county_lon)
         real_distance = sqrt((distance_in_radians * EARTH_RADIUS) ** 2 + squared_depth)
 
-        intensity_map[county_id] = calculate_intensity(
-            mag, real_distance, depth, site_effect
-        )
+        intensity_map[county_id] = calculate_intensity(mag, real_distance, depth, site_effect)
 
     return intensity_map

@@ -19,6 +19,7 @@ from .const import (
     ATTR_DEPTH,
     ATTR_ID,
     ATTR_LAT,
+    ATTR_LIST,
     ATTR_LNG,
     ATTR_LOC,
     ATTR_MAG,
@@ -91,18 +92,27 @@ class notification_sensor(SensorEntity):
         """Schedule a custom update via the common entity update service."""
         # Get the latest earthquake data
         notification = await self.get_eew_data()
-        notification_id = "-".join(
-            map(
-                str,
-                (
-                    notification.get("id", ""),
-                    notification.get("serial", ""),
-                ),
-            )
-        )
         eew: dict = notification.get("eq", {})
         time: Any | None = eew.get("time")
         time_of_occurrence = ""
+
+        if "serial" in notification:
+            notification_id = "-".join(
+                map(
+                    str,
+                    (
+                        notification.get("id", ""),
+                        notification.get("serial", ""),
+                    ),
+                )
+            )
+        else:
+            pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
+            match = re.search(
+                pattern,
+                notification.get("id", ""),
+            )
+            notification_id = "-".join(match.groups())
 
         # formatted the time of occurrence
         if time:
@@ -114,6 +124,14 @@ class notification_sensor(SensorEntity):
 
         # Check state change
         if self._state != notification_id:
+            intensitys = {}
+
+            for county, details in notification.get("list", {}).items():
+                county_int = details["int"]
+                intensitys[county] = county_int
+                for town in details["town"]:
+                    intensitys[f"{county}{town}"] = county_int
+
             self._attr_value[ATTR_AUTHOR] = notification.get("author", "")
             self._attr_value[ATTR_ID] = notification_id
             self._attr_value[ATTR_LOC] = eew.get("loc", "")
@@ -122,6 +140,10 @@ class notification_sensor(SensorEntity):
             self._attr_value[ATTR_MAG] = eew.get("mag", "")
             self._attr_value[ATTR_DEPTH] = eew.get("depth", "")
             self._attr_value[ATTR_TIME] = time_of_occurrence
+            if bool(intensitys):
+                self._attr_value[ATTR_LIST] = intensitys
+            else:
+                self._attr_value.pop(ATTR_LIST, None)
 
             # Update the state
             self._state = notification_id
@@ -168,8 +190,35 @@ class notification_sensor(SensorEntity):
         self.async_write_ha_state()
 
     async def get_eew_data(self) -> dict:
-        """Get the latest notification data."""
-        if len(self._coordinator.earthquake_notification) > 0:
-            return self._coordinator.earthquake_notification[0]
+        """Get the report or latest notification data."""
+        fetch_eew = self._coordinator.earthquake_notification
+        eew_data = {}
+        fetch_report = self._coordinator.report_data
+        report_data = {}
 
-        return []
+        # Get the latest earthquake data
+        if isinstance(fetch_eew, list) and len(fetch_eew) > 0:
+            eew_data = fetch_eew[0]
+        else:
+            eew_data = fetch_eew or {}
+
+        # Get the latest report data
+        if isinstance(fetch_report, list) and len(fetch_report) > 0:
+            report_data = fetch_report[0]
+        else:
+            report_data = fetch_report or {}
+
+        # Check if the report data is more recent than the notification data
+        if report_data.get("time", 0) > eew_data.get("time", 0):
+            eew_data["id"] = report_data.get("id", None)
+            eew_data.pop("serial", None)
+            eq: dict = eew_data.get("eq", {})
+            for key in ("lat", "lon", "depth", "loc", "mag", "time"):
+                eq[key] = report_data.get(key, None)
+            eq["max"] = report_data.get("int", None)
+            eew_data["eq"] = eq
+            eew_data["list"] = report_data.get("list", None)
+            eew_data["md5"] = report_data.get("md5", None)
+
+        # Otherwise, return the notification data
+        return eew_data
