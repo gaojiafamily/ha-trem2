@@ -15,8 +15,14 @@
 [English](README.md) | 繁體中文<br>
 
 
-## 預覽
-![trem2_preview](https://github.com/user-attachments/assets/a1081fd4-baef-476c-bc48-ef823774edc4)
+## Preview
+![image](https://github.com/user-attachments/assets/96193e8b-d820-40f6-acb1-3e8f1c481e3b)
+1. 預估震度可以到圖片屬性查看.
+2. 自動化可以使用[事件](README_zhHant.md#Event)來達成.
+
+![trem2](https://github.com/user-attachments/assets/3d6af2ca-139e-41dd-9a93-03d9c340f7ad)
+**預設顯示上一筆地震報表資料**
+
 
 > [!IMPORTANT]
 > 地震預警來源由 ExpTech Studio 提供，僅供參考<br>
@@ -62,6 +68,17 @@
 <hr>
 <br>
 
+
+## 事件
+| 名稱 | 說明 | 備註 |
+| :------------ | :------------ | :------------ |
+| trem2_notification | 地震速報 | 包含模擬(origin 會顯示 LOCAL) <br> 來自伺服器的則會顯示 REMOTE |
+| trem2_report | 地震報告已更新時會觸發 | |
+| trem2_image_saved | 圖片儲存時會觸發 | |
+
+
+<hr>
+<br>
 
 ## 資料來源
 - [x] Http 協定

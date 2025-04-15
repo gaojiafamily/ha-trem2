@@ -15,8 +15,14 @@
 English | [繁體中文](README_zhHant.md)<br>
 
 
-## Screenshots
-![trem2_preview](https://github.com/user-attachments/assets/a1081fd4-baef-476c-bc48-ef823774edc4)
+## Preview
+![image](https://github.com/user-attachments/assets/96193e8b-d820-40f6-acb1-3e8f1c481e3b)
+1. The property of Image can be used to obtain the estimated seismic intensity.
+2. [Event triggers](README.md#Event) are now supported.
+
+![trem2](https://github.com/user-attachments/assets/3d6af2ca-139e-41dd-9a93-03d9c340f7ad)
+**The recent report data is displayed by default**
+
 
 > [!IMPORTANT]
 > The source of earthquake early warning is provided by ExpTech Studio and is for reference only.<br>
@@ -62,6 +68,17 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 <hr>
 <br>
 
+
+## Event
+| Event | Summary | Note |
+| :------------ | :------------ | :------------ |
+| trem2_notification | Earthquake Early Warning | Including simulation <br> the origin field will display LOCAL for simulations <br> and REMOTE when receiving a real server alert |
+| trem2_report | Earthquake Report | |
+| trem2_image_saved | Image Saved | |
+
+
+<hr>
+<br>
 
 ## Data Source
 - [x] Http protocol

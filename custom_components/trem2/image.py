@@ -88,9 +88,7 @@ class monitoring_image(ImageEntity):
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
         self.async_on_remove(
-            self._coordinator.async_add_listener(
-                lambda: self.hass.async_create_task(self._update_callback())
-            )
+            self._coordinator.async_add_listener(lambda: self.hass.async_create_task(self._update_callback()))
         )
 
     async def async_image(self) -> bytes | None:
@@ -118,50 +116,54 @@ class monitoring_image(ImageEntity):
 
         # Get the latest notification data
         eq_data = await self.get_eew_data()
-        report_data = await self.get_report_data()
-
-        # Check _cached_image_id to avoid unnecessary updates
-        eq_id = "-".join(
-            map(
-                str,
-                (
-                    eq_data.get("id", "XXXXXXX"),
-                    eq_data.get("serial", "X"),
-                ),
+        if "serial" in eq_data:
+            eq_id = "-".join(
+                map(
+                    str,
+                    (
+                        eq_data.get("id", ""),
+                        eq_data.get("serial", ""),
+                    ),
+                )
             )
-        )
-        report_id = report_data.get("id", "")
-        if eq_id == self._cached_image_id and report_id == self._cached_report_id:
+        else:
+            pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
+            match = re.search(
+                pattern,
+                eq_data.get("id", ""),
+            )
+            eq_id = "-".join(match.groups())
+
+        # Check state change
+        if self._cached_image_id == eq_id:
             return
 
         # Calculate the intensity
-        intensitys = get_calculate_intensity(
-            eq_data.get(
-                "eq",
-                await self.get_int_data(),
-            )
-        )
-
-        # Write the attributes with the intensity values greater than 0
-        self._attr_value = {
-            ATTR_COUNTY.get(k, k): intensity_to_text(v)
-            for k, v in intensitys.items()
-            if round_intensity(v) > 0
-        }
-
-        assets_path = f"custom_components/{DOMAIN}/assets"
-        eew_time = eq_data.get("time", 0)
-        report_time = report_data.get("time", 0)
-        if report_time < eew_time:
-            bg_path = hass_config.path(f"{assets_path}/brand.svg")
-            url = OFFICIAL_URL
+        if "list" in eq_data:
+            intensitys = await self.get_int_data(eq_data["list"])
         else:
-            bg_path = hass_config.path(f"{assets_path}/cwa_logo.svg")
+            intensitys = (
+                get_calculate_intensity(
+                    eq_data.get(
+                        "eq",
+                        None,
+                    )
+                )
+                or await self.get_int_data()
+            )
 
-            if self.report_invalid(report_time, eew_time):
-                url = "https://cwa.gov.tw/v8/c/e/index.html"
-            else:
-                url = f"https://cwa.gov.tw/v8/c/e/eq/eq{report_id}.html"
+            # Write the attributes with the intensity values greater than 0
+            self._attr_value = {
+                ATTR_COUNTY.get(k, k): intensity_to_text(v) for k, v in intensitys.items() if round_intensity(v) > 0
+            }
+
+        # QR Code data
+        assets_path = f"custom_components/{DOMAIN}/assets"
+        bg_path = hass_config.path(f"{assets_path}/brand.svg")
+        url = OFFICIAL_URL
+        if "md5" in eq_data:
+            bg_path = hass_config.path(f"{assets_path}/cwa_logo.svg")
+            url = f"https://www.cwa.gov.tw/V8/C/E/EQ/EQ{eq_id}.html"
 
         # Draw the isoseismal map
         svg_cont = draw_isoseismal_map(
@@ -184,7 +186,6 @@ class monitoring_image(ImageEntity):
         self._attr_image_last_updated = dt_util.utcnow()
 
         # Update the _cached_image_id
-        self._cached_report_id = report_id
         self._cached_image_id = eq_id
         self._attr_value[ATTR_ID] = eq_id
 
@@ -200,16 +201,47 @@ class monitoring_image(ImageEntity):
         return delta > threshold_seconds
 
     async def get_eew_data(self) -> dict:
-        """Get the latest notification data."""
-        if len(self._coordinator.earthquake_notification) > 0:
-            return self._coordinator.earthquake_notification[0]
+        """Get the report or latest notification data."""
+        fetch_eew = self._coordinator.earthquake_notification
+        eew_data = {}
+        fetch_report = self._coordinator.report_data
+        report_data = {}
 
-        return {}
+        # Get the latest earthquake data
+        if isinstance(fetch_eew, list) and len(fetch_eew) > 0:
+            eew_data = fetch_eew[0]
+        else:
+            eew_data = fetch_eew
 
-    async def get_report_data(self) -> dict:
-        """Get the latest report data."""
-        return self._coordinator.report_data
+        # Get the latest report data
+        if isinstance(fetch_report, list) and len(fetch_report) > 0:
+            report_data = fetch_report[0]
+        else:
+            report_data = fetch_report
 
-    async def get_int_data(self) -> dict:
+        # Check if the report data is more recent than the notification data
+        if report_data.get("time", 0) > eew_data.get("time", 0):
+            eew_data["id"] = report_data.get("id", None)
+            eew_data.pop("serial", None)
+            eq: dict = eew_data.get("eq", {})
+            for key in ("lat", "lon", "depth", "loc", "mag", "time"):
+                eq[key] = report_data.get(key, None)
+            eq["max"] = report_data.get("int", None)
+            eew_data["eq"] = eq
+            eew_data["md5"] = report_data.get("md5", None)
+
+        # Otherwise, return the notification data
+        return eew_data
+
+    async def get_int_data(self, intensitys: dict) -> dict:
         """Get the latest intensity data."""
-        return self._coordinator.intensity
+        int_list = {}
+
+        if intensitys is None:
+            int_list = self._coordinator.intensity
+        else:
+            county_list = dict((v, k) for k, v in ATTR_COUNTY.items())
+            for county, detail in intensitys.items():
+                int_list[county_list[county]] = detail["int"]
+
+        return int_list

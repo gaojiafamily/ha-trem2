@@ -486,7 +486,7 @@ def _draw_epicenter(svg_parts: list, eq: dict, eq_id, county_name, max):
                 )
             ),
             mag=eq.get("mag", "---"),
-            depth=eq.get("mag", "---"),
+            depth=eq.get("depth", "---"),
         )
     )
 
@@ -504,11 +504,15 @@ def _draw_cross(svg_parts: list, epicenter_x, epicenter_y):
     svg_parts.append(f'<circle style="fill:#2e364f;fill-opacity:0.5" cx="{epicenter_x}" cy="{epicenter_y}" r="80" />')
 
 
-def _parse_location(loc):
+def _parse_location(loc: str) -> tuple[str, str]:
     """Parse location into main and specific parts."""
-    loc_parts = loc.split("(")
-    loc_main = loc_parts[0].strip() if len(loc_parts) > 0 else loc
-    loc_spec = loc_parts[1].strip(")") if len(loc_parts) > 1 else "未知區域"
+    if loc is None:
+        loc_main = "震源調查中"
+        loc_spec = "未知區域"
+    else:
+        loc_parts = loc.split("(")
+        loc_main = loc_parts[0].strip() if len(loc_parts) > 0 else loc
+        loc_spec = loc_parts[1].strip(")") if len(loc_parts) > 1 else "未知區域"
 
     return loc_main, loc_spec
 

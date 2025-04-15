@@ -27,7 +27,7 @@ simulator:
   fields:
     data:
       name: "Earthquake Data"
-      description: "Please refer to the example data, To stop simulation, check and `leave empty`."
+      description: "Please refer to the example data, To stop simulation, `leave empty` or un-check."
       example: *simulator_data
       selector:
         text:
