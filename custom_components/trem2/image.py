@@ -21,10 +21,12 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_COUNTY,
     ATTR_ID,
+    ATTR_REPORT_IMG_URL,
     ATTRIBUTION,
     DOMAIN,
     MANUFACTURER,
     OFFICIAL_URL,
+    REPORT_IMG_URL,
     TREM2_COORDINATOR,
     TREM2_NAME,
     __version__,
@@ -116,12 +118,13 @@ class monitoring_image(ImageEntity):
 
         # Get the latest notification data
         eq_data = await self.get_eew_data()
+        eew_id = eq_data.get("id", "")
         if "serial" in eq_data:
             eq_id = "-".join(
                 map(
                     str,
                     (
-                        eq_data.get("id", ""),
+                        eew_id,
                         eq_data.get("serial", ""),
                     ),
                 )
@@ -130,7 +133,7 @@ class monitoring_image(ImageEntity):
             pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
             match = re.search(
                 pattern,
-                eq_data.get("id", ""),
+                eew_id,
             )
             eq_id = "-".join(match.groups())
 
@@ -141,6 +144,7 @@ class monitoring_image(ImageEntity):
         # Calculate the intensity
         if "list" in eq_data:
             intensitys = await self.get_int_data(eq_data["list"])
+            self._attr_value = {ATTR_REPORT_IMG_URL: f"{REPORT_IMG_URL}/{eew_id}.jpg"}
         else:
             intensitys = (
                 get_calculate_intensity(
@@ -192,14 +196,6 @@ class monitoring_image(ImageEntity):
         # Update the attributes
         self.async_write_ha_state()
 
-    def report_invalid(self, t1, t2, threshold_seconds=6000):
-        """Check if the report time is valid."""
-        t1_sec = t1 // 1000
-        t2_sec = t2 // 1000
-
-        delta = abs(t1_sec - t2_sec)
-        return delta > threshold_seconds
-
     async def get_eew_data(self) -> dict:
         """Get the report or latest notification data."""
         fetch_eew = self._coordinator.earthquake_notification
@@ -240,7 +236,7 @@ class monitoring_image(ImageEntity):
         if intensitys is None:
             int_list = self._coordinator.intensity
         else:
-            county_list = dict((v, k) for k, v in ATTR_COUNTY.items())
+            county_list = {v: k for k, v in ATTR_COUNTY.items()}
             for county, detail in intensitys.items():
                 int_list[county_list[county]] = detail["int"]
 

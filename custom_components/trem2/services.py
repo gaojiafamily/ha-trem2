@@ -6,22 +6,19 @@ import asyncio
 import logging
 from pathlib import Path
 
-from .const import ATTR_DATA, ATTR_SAVE2FILE, DOMAIN
-
 from homeassistant.components.image import ImageEntity
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import EventOrigin, HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import async_get_platforms
 
+from .const import ATTR_DATA, ATTR_SAVE2FILE, DOMAIN
 from .update_coordinator import trem2_update_coordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_register_services(
-    hass: HomeAssistant, coordinator: trem2_update_coordinator, domain: str
-):
+async def async_register_services(hass: HomeAssistant, coordinator: trem2_update_coordinator, domain: str):
     """Register services for the custom component."""
 
     async def save_image(call: ServiceCall):
@@ -41,9 +38,7 @@ async def async_register_services(
                 entity = entity_tmp
                 break
         if not entity:
-            raise HomeAssistantError(
-                f"Could not find entity {entity_id} from integration {DOMAIN}"
-            )
+            raise HomeAssistantError(f"Could not find entity {entity_id} from integration {DOMAIN}")
 
         # Check write access to the file path
         filepath = Path(
@@ -51,27 +46,29 @@ async def async_register_services(
                 call.data.get(
                     ATTR_SAVE2FILE,
                     "www/{filename}".format(
-                        filename=entity.state_attributes.get("serial", DOMAIN),
+                        filename=entity.extra_state_attributes.get("serial", DOMAIN),
                     ),
                 )
             )
         )
+
+        # Create directory if not exist
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+
+        # Check file extension
+        if filepath.suffix != ".png":
+            filepath = filepath.with_suffix(".png")
+
+        # Check write permissions
         if not hass.config.is_allowed_path(str(filepath)):
             raise HomeAssistantError(
-                """Cannot write `{path}`, no access to path;
-                `allowlist_external_dirs` may need to be adjusted in `configuration.yaml`""".format(
-                    path=str(filepath),
-                )
+                f"""Cannot write `{filepath!s}`, no access to path;
+                `allowlist_external_dirs` may need to be adjusted in `configuration.yaml`"""
             )
-        else:
-            filepath.parent.mkdir(parents=True, exist_ok=True)
 
         # Write the image to the file
         image = await entity.async_image()
         try:
-            if filepath.suffix != ".png":
-                filepath = filepath.with_suffix(".png")
-
             await asyncio.to_thread(Path(filepath).write_bytes, image)
             hass.bus.fire(f"{domain}_image_saved", {"filename": filepath.name})
         except OSError as e:
@@ -87,9 +84,7 @@ async def async_register_services(
             return
 
         _LOGGER.warning("Start earthquake simulation")
-        hass.bus.fire(
-            f"{domain}_notification", {"earthquake": data}, origin=EventOrigin.local
-        )
+        hass.bus.fire(f"{domain}_notification", {"earthquake": data}, origin=EventOrigin.local)
 
     hass.services.async_register(domain, "save2file", save_image)
     hass.services.async_register(domain, "simulator", simulating_earthquake)
