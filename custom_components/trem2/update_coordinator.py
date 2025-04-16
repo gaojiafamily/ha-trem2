@@ -154,7 +154,7 @@ class trem2_update_coordinator(DataUpdateCoordinator):
                         local_report_id = report.get("id", "")
 
                         # Check if the report data is up to date
-                        if fetch_report_id not in ("", local_report_id):
+                        if fetch_report_id not in {"", local_report_id}:
                             self._cached_report_data = await self._fetch_report_detail(fetch_report_id)
                             await self.store_report.async_save(self._cached_report_data)
 
@@ -201,6 +201,7 @@ class trem2_update_coordinator(DataUpdateCoordinator):
                 return await response.json()
 
         _LOGGER.error("Failed fetching data from report server, (HTTP Status Code = %s)", response.status)
+        return None
 
     async def _async_update_data(self):
         """Poll earthquake data."""
