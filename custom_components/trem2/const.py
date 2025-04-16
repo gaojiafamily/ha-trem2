@@ -17,7 +17,7 @@ ISSUE_URL = f"{PROJECT_URL}/issues"
 OFFICIAL_URL = "https://www.gj-smart.com"
 
 # Version
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 # Timezone
 TZ_TW = ZoneInfo("Asia/Taipei")
@@ -26,6 +26,7 @@ TZ_UTC = UTC
 # General sensor attributes
 ATTRIBUTION = "本訊息僅提供應變參考，因時效需求存在不準確性。"
 ATTR_SAVE2FILE = "filename"
+ATTR_REPORT_IMG_URL = "report_img_url"
 ATTR_DATA = "data"
 ATTR_ID = "serial"
 ATTR_AUTHOR = "provider"
@@ -91,7 +92,8 @@ BASE_URLS = {
     "taipei": "https://lb-1.exptech.dev",
     "pingtung": "https://lb-2.exptech.dev",
 }
-REPORT_URL = "https://api.exptech.dev/api/v2/eq/report/"
+REPORT_URL = "https://api.exptech.dev/api/v2/eq/report"
+REPORT_IMG_URL = "https://api-1.exptech.dev/file/images/report"
 REQUEST_TIMEOUT = 30  # seconds
 
 # STRINGS

@@ -8,15 +8,7 @@ from reportlab.graphics import renderSVG
 import segno
 from svglib.svglib import svg2rlg
 
-from .const import (
-    COUNTY_CENTERS,
-    COUNTY_NAME,
-    DEFAULT_COLOR,
-    INTENSITY_COLORS,
-    TAIWAN_CENTER,
-    TZ_TW,
-    TZ_UTC,
-)
+from .const import COUNTY_CENTERS, COUNTY_NAME, DEFAULT_COLOR, INTENSITY_COLORS, TAIWAN_CENTER, TZ_TW, TZ_UTC
 from .earthquake import intensity_to_text, round_intensity
 
 TW_MAP_SVG = {
@@ -24,7 +16,7 @@ TW_MAP_SVG = {
         <?xml version="1.0" encoding="UTF-8"?>
         <svg width="1000" height="1000" fill="#808080" stroke="#fff" baseProfile="tiny" xmlns="http://www.w3.org/2000/svg">
         <rect x="0" y="0" width="1000" height="1000" fill="#2D2926" opacity="1" />
-    """,  # noqa: E501
+    """,
     "TWKIN": '<path d="m181.2 423.5v0.1l-1.1-0.4-0.3-0.4 0.6-1.2-1.3-0.9-0.2-0.3-0.1-0.1-2.5-1.9-1.8-1.9-2.7 1-1.3 1.6 0.2 0.7-0.1 0.6-0.3 0.2-0.3-0.1-0.4 2.4-5 5.9-11.4-4.1 0.2 1-0.2 1-0.3 0.1 1.1 1.1-0.4 8.2-3.3 2.6 2.5 2.7-1.4-0.6-1.9-0.2-1.7-0.7-0.9-1.5 0.3-0.6 1.6-1.9 0.5-1 0.1-1.4v-1.8l-0.6-3.1-1.2-3-0.2-1.6 1.1-0.6 5.5-2.7 7.2 4.7 5-0.6 0.8-6.3 1.7-3.9 5.3-1.1 5.2 4.7 2 5.3zm0.2 10.5 0.3-2.1h0.3l-0.2 1.7-0.4 0.4zm0.9-5-1-3 0.1-0.7 0.3-0.4 0.8 2.4-0.2 1.7z" id="TWKIN" fill="{TWKIN_COLOR}"></path>',  # noqa: E501
     "TWLIE": '<path d="m181.2 423.5v0.1l-1.1-0.4-0.3-0.4 0.6-1.2-1.3-0.9-0.2-0.3-0.1-0.1-2.5-1.9-1.8-1.9-2.7 1-1.3 1.6 0.2 0.7-0.1 0.6-0.3 0.2-0.3-0.1-0.4 2.4-5 5.9-11.4-4.1 0.2 1-0.2 1-0.3 0.1 1.1 1.1-0.4 8.2-3.3 2.6 2.5 2.7-1.4-0.6-1.9-0.2-1.7-0.7-0.9-1.5 0.3-0.6 1.6-1.9 0.5-1 0.1-1.4v-1.8l-0.6-3.1-1.2-3-0.2-1.6 1.1-0.6 5.5-2.7 7.2 4.7 5-0.6 0.8-6.3 1.7-3.9 5.3-1.1 5.2 4.7 2 5.3zm0.2 10.5 0.3-2.1h0.3l-0.2 1.7-0.4 0.4zm0.9-5-1-3 0.1-0.7 0.3-0.4 0.8 2.4-0.2 1.7z" id="TWLIE" fill="{TWLIE_COLOR}"></path>',  # noqa: E501
     "TWPEN": '<path d="m409.7 611.6 0.9 2.9 -0.4 2.2 -1.4 -1.4 -1.9 -1.3 -2 -0.4 -2.8 1.6 -2.1 0.3 -1 0.5 -0.5 1.1 -0.8 2.9 -0.5 0.9 -3.4 2 -3.4 0.5 -3.5 -1.4 -3.5 -3.5 0.9 -1.8 1.9 2.3 2.3 2.9 0.6 3.1 -0.8 2.6 -2.1 -1.8 -0.7 -1.4 -0.8 -1.1 -1.2 -1 -1.6 -0.4 0.7 v 0.2 l -0.2 0.2 -0.7 0.4 -0.2 -2.9 0.2 -2.9 h 1.3 l 1.5 0.4 5.3 -3.4 3.4 -1.1 -0.9 3.2 -0.4 0.9 2.9 -0.9 2.2 0.3 1.6 -0.2 1.2 -1.9 3.4 6.2 z" id="TWPEN" fill="{TWPEN_COLOR}"></path>',  # noqa: E501
@@ -123,8 +115,7 @@ def latlon_to_svg(
     center_xy=(658.6, 552),
     viewbox=(1000, 1000),
 ):
-    """
-    Convert latitude and longitude to SVG coordinates.
+    """Convert latitude and longitude to SVG coordinates.
 
     Parameters
     ----------
@@ -161,6 +152,7 @@ def latlon_to_svg(
             viewbox=(1000.0, 1000.0)
         )
     (646.2863500000018, 619.9500000000003)
+
     """
     # Latlong bounds for Taiwan
     min_lon, max_lon = 117, 124
@@ -234,8 +226,7 @@ def mag_to_intensity(mag):
 
 
 def generate_qr_code(url, bg_svg, scale=9):
-    """
-    Generate a QR code and overlay it on a background SVG.
+    """Generate a QR code and overlay it on a background SVG.
 
     Parameters
     ----------
@@ -259,6 +250,7 @@ def generate_qr_code(url, bg_svg, scale=9):
             scale=9
         )
     '<g id="qrcode" transform="translate(870 10)">...</g>'
+
     """
     qrcode = segno.make(
         url,
@@ -319,8 +311,7 @@ def generate_qr_code(url, bg_svg, scale=9):
 
 
 def draw(intensitys: dict, eq_data: dict, eq_id="XXXXXXX-X", bg_path=None, url=None):
-    """
-    Draw the Taiwan map with earthquake data.
+    """Draw the Taiwan map with earthquake data.
 
     Parameters
     ----------
@@ -388,18 +379,19 @@ def draw(intensitys: dict, eq_data: dict, eq_id="XXXXXXX-X", bg_path=None, url=N
             url="https://www.gj-smart.com/"
         )
     '<svg>...</svg>'
+
     """
     # Draw SVG from head starting
     svg_parts = [TW_MAP_SVG["head"]]
 
     # Add Taiwan map SVG parts
-    county_id, max = _draw_intensitys(svg_parts, intensitys)
+    county_id, max_int = _draw_intensitys(svg_parts, intensitys)
     county_name = COUNTY_NAME.get(county_id, county_id)
-    max = intensity_to_text(round_intensity(max))
+    max_int = intensity_to_text(round_intensity(max_int))
 
     # Add epicenter and earthquake information
     eq = eq_data.get("eq", {})
-    _draw_epicenter(svg_parts, eq, eq_id, county_name, max)
+    _draw_epicenter(svg_parts, eq, eq_id, county_name, max_int)
 
     # Add QR code if URL is provided
     _add_qr_code(svg_parts, url, bg_path)
