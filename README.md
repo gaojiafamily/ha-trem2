@@ -44,21 +44,27 @@ English | [繁體中文](README_zhHant.md)<br>
 <hr>
 <br>
 
-## Installation
+## Legal
 
-### Using [HACS](https://hacs.xyz/) (recommended)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=gaojiafamily&repository=ha-trem2&category=Integration)
-
-### Manual
-1. Create `config/custom_components` folder if not existing.
-2. Copy `trem2` into `custom_components` folder.
+- [Terms of Service](legal/TERMS_zhHant.md)
+- [Privacy Policy](legal/PRIVACY_zhHant.md)
 
 <hr>
 <br>
 
+## Getting Started
+### For Your Protection
+Before using, please read and comply with the [Terms of Service](legal/TERMS_zhHant.md) and [Privacy Policy](legal/PRIVACY_zhHant.md).
 
-## Config
+### Installation
+#### Using [HACS](https://hacs.xyz/) (recommended)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=gaojiafamily&repository=ha-trem2&category=Integration)
 
+#### Manual
+1. Create `config/custom_components` folder if not existing.
+2. Copy `trem2` into `custom_components` folder.
+
+### Config
 **Please use the config flow of Home Assistant.**
 
 With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earthquake Monitoring 2
@@ -100,10 +106,11 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 <br>
 
 
-### ECS/Exptech VIP
+### Subscribe Plan
 ~~Based on the donate amount, every $15 grants six months of ECS access.~~
 
 > [!NOTE]
+> When using ECS or ExpTech VIP services, please review the [Terms of Service](legal/TERMS_zhHant.md#7-訂閱條款) and [Privacy Policy](legal/PRIVACY_zhHant.md).<br>
 > ECS access will be released soon.
 
 <p>You can goto https://exptech.com.tw/pricing to subscribe Exptech VIP.</p>
@@ -119,6 +126,9 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 | :------------: | :------------: | :------------: |
 | <img src="https://github.com/user-attachments/assets/48a3bae6-f342-4d74-ba95-8db82cb44430" alt="Buy me a coffee" height="200" width="200">  | <img src="https://github.com/user-attachments/assets/ee77e2b6-3409-43da-b2b8-14878c5660bb" alt="Line Bank" height="200" width="200">  | <img src="https://github.com/user-attachments/assets/cfaeab8f-576c-43e7-be52-8581bf263cd9" alt="JAKo Pay" height="200" width="200">  |
 
+> [!NOTE]
+> Your sponsorship will be used to maintain the open-source project and develop the ECS service.<br>
+> All related rights and obligations are governed by the [Terms of Service](legal/TERMS_zhHant.md).
 <hr>
 <br>
 
@@ -133,39 +143,13 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 <br>
 
 
-## License
-1. This is an open-source client tool licensed under the AGPL-3.0 license, allowing anyone to freely use, modify, and distribute it.
-2. This tool requires a subscription to use our enhanced computing service.
-3. The Noto Sans TC font is licensed under the [SIL Open Font License (OFL) v1.1](https://scripts.sil.org/OFL).
-> This license allows the font to be freely used, modified, and distributed, as long as derivative works remain under the same license.
-<br>
-**2024-08-15 Agreement reached with ExpTech Studio.**
+## License & Terms
+- **Open Source License**: This project is licensed under the [AGPL-3.0 License](https://www.gnu.org/licenses/agpl-3.0.html), allowing free use, modification, and distribution. For details, see the [Terms of Service](legal/TERMS_zhHant.md#6-授權條款).
+- **Enhanced Computing Service (ECS)**: Subscription is required and you must comply with the [Terms of Service](legal/TERMS_zhHant.md#7-訂閱條款), including refund policies and usage restrictions.
+- **Font License**: This project uses the [Noto Sans TC font](https://fonts.google.com/specimen/Noto+Sans+TC). For more information, see the [Terms of Service](legal/TERMS_zhHant.md#6-授權條款).
 
 <hr>
 <br>
-
-
-### Font License Summary
-- **Attribution**:
-  - The Noto Sans TC font is developed by Google and other contributors. For more information, visit [Google Fonts](https://fonts.google.com/specimen/Noto+Sans+TC).
-- **Usage**
-  - The font file (`NotoSansTC-Regular.ttf`) is copied to the user's font directory
-- **Permissions**:
-  - Commercial use
-  - Modification
-  - Distribution
-  - Private use
-- **Limitations**:
-  - No warranty
-  - Liability limitations
-- **Conditions**:
-  - A copy of the license and copyright notice must be included with the licensed material.
-  - Modifications must be released under the same license.
-
-> [!INFO]
-> This repository includes the Noto Sans TC font solely for usage within this project.
-> Redistribution of the font outside of this repository must comply with the SIL Open Font License terms.
-> For more details, please read the full [SIL Open Font License](https://scripts.sil.org/OFL).
 
 
 [releases-shield]: https://img.shields.io/github/release/gaojiafamily/ha-trem2.svg?style=for-the-badge
