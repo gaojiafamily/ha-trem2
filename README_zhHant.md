@@ -15,10 +15,10 @@
 [English](README.md) | 繁體中文<br>
 
 
-## Preview
+## 介紹
 ![image](https://github.com/user-attachments/assets/96193e8b-d820-40f6-acb1-3e8f1c481e3b)
 1. 預估震度可以到圖片屬性查看.
-2. 自動化可以使用[事件](README_zhHant.md#Event)來達成.
+2. 自動化可以[使用事件](README_zhHant.md#事件)來達成.
 
 ![trem2](https://github.com/user-attachments/assets/3d6af2ca-139e-41dd-9a93-03d9c340f7ad)
 **預設顯示上一筆地震報表資料**
@@ -44,21 +44,27 @@
 <hr>
 <br>
 
-## 安裝
+## 法律文件
 
-### 推薦使用 [HACS](https://hacs.xyz/)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=gaojiafamily&repository=ha-trem2&category=Integration)
-
-### 手動
-1. 如果不存在，請建立 `config/custom_components` 資料夾
-2. 將 `trem2` 複製到 `custom_components` 資料夾中
+- [服務條款](legal/TERMS_zhHant.md)
+- [隱私權政策](legal/PRIVACY_zhHant.md)
 
 <hr>
 <br>
 
+## 開始使用
+### 為了您的權益
+**使用前，請閱讀並遵守[服務條款](legal/TERMS_zhHant.md#7-訂閱條款)與[隱私政策](legal/PRIVACY_zhHant.md)**
 
-## 設定
+### 安裝
+#### 推薦使用 [HACS](https://hacs.xyz/)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=gaojiafamily&repository=ha-trem2&category=Integration)
 
+#### 手動
+1. 如果不存在，請建立 `config/custom_components` 資料夾
+2. 將 `trem2` 複製到 `custom_components` 資料夾中
+
+### 設定
 **請使用 Home Assistant 的設定流程**
 
 使用圖形介面：設定 > 整合 > 新增整合 > Taiwan Real-time Earthquake Monitoring 2
@@ -100,7 +106,7 @@
 <br>
 
 
-### ECS/Exptech VIP
+### 訂閱服務
 ~~根據您的贊助金額，每 $15 可以獲得半年 ECS 授權.~~
 
 > [!NOTE]
@@ -119,6 +125,8 @@
 | :------------: | :------------: | :------------: |
 | <img src="https://github.com/user-attachments/assets/48a3bae6-f342-4d74-ba95-8db82cb44430" alt="Buy me a coffee" height="200" width="200">  | <img src="https://github.com/user-attachments/assets/ee77e2b6-3409-43da-b2b8-14878c5660bb" alt="Line Bank" height="200" width="200">  | <img src="https://github.com/user-attachments/assets/cfaeab8f-576c-43e7-be52-8581bf263cd9" alt="JAKo Pay" height="200" width="200">  |
 
+> [!NOTE]
+> 您的贊助將用於維護開源專案與 ECS 服務開發，相關權利義務依[服務條款](legal/TERMS_zhHant.md)規範。
 <hr>
 <br>
 
@@ -133,37 +141,13 @@
 <br>
 
 
-## 授權
-1. 這是一個開源客戶端工具，採用 AGPL-3.0 許可證，允許任何人自由使用、修改和分發
-2. 此工具需要訂閱才能使用我們的增強運算服務
-
-> **2024-08-15 與 ExpTech Studio 達成協議**
+## 授權與條款
+- **開源授權**：本專案採用 [AGPL-3.0 授權](https://www.gnu.org/licenses/agpl-3.0.html)，允許自由使用、修改與散布，詳見[服務條款](legal/TERMS_zhHant.md#6-授權條款)。
+- **增強運算服務 (ECS)**：需訂閱並遵守[服務條款](legal/TERMS_zhHant.md#7-訂閱條款)，包含退款政策與使用限制。
+- **字體授權**：本專案使用 [Noto Sans TC 字體](https://fonts.google.com/specimen/Noto+Sans+TC)，更多資訊詳見[服務條款](legal/TERMS_zhHant.md#6-授權條款)。
 
 <hr>
 <br>
-
-
-## 字體授權摘要
-- **署名要求**:
-  - Noto Sans TC 字體由 Google 及其他貢獻者開發。更多資訊請參閱 [Google Fonts](https://fonts.google.com/specimen/Noto+Sans+TC)
-- **使用方式**:
-  - 字體文件（NotoSansTC-Regular.ttf）將複製至使用者的字體目錄
-- **授權許可範圍**:
-  - 商業用途
-  - 修改
-  - 分發
-  - 個人使用
-- **限制條款**:
-  - 無擔保
-  - 責任限制
-- **強制條件**:
-  - 必須包含授權條款及版權聲明於授權內容中
-  - 修改後的衍生作品必須以相同授權條款釋出
-
-> [!INFO]
-> 本存儲庫包含的 Noto Sans TC 字體僅限用於本項目內
-> 若需於本存儲庫外發佈此字體，必須遵守 SIL 開放字體授權條款 規定
-> 完整條款詳見 [SIL Open Font License](https://scripts.sil.org/OFL)
 
 
 [releases-shield]: https://img.shields.io/github/release/gaojiafamily/ha-trem2.svg?style=for-the-badge
