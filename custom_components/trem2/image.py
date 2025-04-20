@@ -116,6 +116,9 @@ class monitoring_image(ImageEntity):
         """Handle updated data from the coordinator."""
         hass_config = self.hass.config
 
+        if not self._coordinator.last_update_success:
+            return
+
         # Get the latest notification data
         eq_data = await self.get_eew_data()
         eew_id = eq_data.get("id", "")
@@ -224,6 +227,7 @@ class monitoring_image(ImageEntity):
                 eq[key] = report_data.get(key, None)
             eq["max"] = report_data.get("int", None)
             eew_data["eq"] = eq
+            eew_data["list"] = report_data.get("list", {})
             eew_data["md5"] = report_data.get("md5", None)
 
         # Otherwise, return the notification data

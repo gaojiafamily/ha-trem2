@@ -27,6 +27,8 @@ TZ_UTC = UTC
 ATTRIBUTION = "本訊息僅提供應變參考，因時效需求存在不準確性。"
 ATTR_SAVE2FILE = "filename"
 ATTR_REPORT_IMG_URL = "report_img_url"
+ATTR_API_URL = "api_url"
+ATTR_API_NODE = "api_node"
 ATTR_DATA = "data"
 ATTR_ID = "serial"
 ATTR_AUTHOR = "provider"
@@ -86,11 +88,20 @@ STORAGE_TOKEN = f"{DOMAIN}/token.json"
 
 # REST
 HA_USER_AGENT = "TREM custom integration for Home Assistant (https://github.com/gaojiafamily/ha-trem2)"
+API_VERSION = 2
 BASE_URLS = {
-    "tainan_cache": "https://api-1.exptech.dev",
-    "taipei_cache": "https://api-2.exptech.dev",
-    "taipei": "https://lb-1.exptech.dev",
-    "pingtung": "https://lb-2.exptech.dev",
+    "tainan": "https://api-1.exptech.dev",
+    "taipei": "https://api-2.exptech.dev",
+    "taipei_1": "https://lb-1.exptech.dev",
+    "pingtung_1": "https://lb-2.exptech.dev",
+    "taipei_2": "https://lb-3.exptech.dev",
+    "pingtung_2": "https://lb-4.exptech.dev",
+}
+WS_URLS = {
+    "taipei_1": "wss://lb-1.exptech.dev/websocket",
+    "pingtung_1": "wss://lb-2.exptech.dev/websocket",
+    "taipei_2": "wss://lb-3.exptech.dev/websocket",
+    "pingtung_2": "wss://lb-4.exptech.dev/websocket",
 }
 REPORT_URL = "https://api.exptech.dev/api/v2/eq/report"
 REPORT_IMG_URL = "https://api-1.exptech.dev/file/images/report"
