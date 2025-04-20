@@ -90,7 +90,9 @@ class monitoring_image(ImageEntity):
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
         self.async_on_remove(
-            self._coordinator.async_add_listener(lambda: self.hass.async_create_task(self._update_callback()))
+            self._coordinator.async_add_listener(
+                lambda: self.hass.async_create_task(self._update_callback())
+            )
         )
 
     async def async_image(self) -> bytes | None:
@@ -158,7 +160,9 @@ class monitoring_image(ImageEntity):
 
             # Write the attributes with the intensity values greater than 0
             self._attr_value = {
-                ATTR_COUNTY.get(k, k): intensity_to_text(v) for k, v in intensitys.items() if round_intensity(v) > 0
+                ATTR_COUNTY.get(k, k): intensity_to_text(v)
+                for k, v in intensitys.items()
+                if round_intensity(v) > 0
             }
 
         # QR Code data

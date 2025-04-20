@@ -152,7 +152,9 @@ class notification_sensor(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
-        self.async_on_remove(self._coordinator.async_add_listener(self._update_callback))
+        self.async_on_remove(
+            self._coordinator.async_add_listener(self._update_callback)
+        )
 
     @property
     def available(self):

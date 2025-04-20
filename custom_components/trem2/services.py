@@ -18,7 +18,9 @@ from .update_coordinator import trem2_update_coordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_register_services(hass: HomeAssistant, coordinator: trem2_update_coordinator, domain: str):
+async def async_register_services(
+    hass: HomeAssistant, coordinator: trem2_update_coordinator, domain: str
+):
     """Register services for the custom component."""
 
     async def save_image(call: ServiceCall):
@@ -38,7 +40,9 @@ async def async_register_services(hass: HomeAssistant, coordinator: trem2_update
                 entity = entity_tmp
                 break
         if not entity:
-            raise HomeAssistantError(f"Could not find entity {entity_id} from integration {DOMAIN}")
+            raise HomeAssistantError(
+                f"Could not find entity {entity_id} from integration {DOMAIN}"
+            )
 
         # Check write access to the file path
         filepath = Path(
@@ -84,7 +88,9 @@ async def async_register_services(hass: HomeAssistant, coordinator: trem2_update
             return
 
         _LOGGER.warning("Start earthquake simulation")
-        hass.bus.fire(f"{domain}_notification", {"earthquake": data}, origin=EventOrigin.local)
+        hass.bus.fire(
+            f"{domain}_notification", {"earthquake": data}, origin=EventOrigin.local
+        )
 
     hass.services.async_register(domain, "save2file", save_image)
     hass.services.async_register(domain, "simulator", simulating_earthquake)
