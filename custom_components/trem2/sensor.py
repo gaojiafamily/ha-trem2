@@ -112,7 +112,10 @@ class notification_sensor(SensorEntity):
                 pattern,
                 notification.get("id", ""),
             )
-            notification_id = "-".join(match.groups())
+            if match is None:
+                notification_id = ""
+            else:
+                notification_id = "-".join(match.groups())
 
         # formatted the time of occurrence
         if time:
@@ -187,6 +190,9 @@ class notification_sensor(SensorEntity):
     @callback
     def _update_callback(self) -> None:
         """Handle updated data from the coordinator."""
+        if not self._coordinator.last_update_success:
+            return
+
         self.async_write_ha_state()
 
     async def get_eew_data(self) -> dict:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
 import logging
 from pathlib import Path
 import subprocess
@@ -43,7 +42,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     store_report = Store(hass, 1, STORAGE_REPORT)
     update_coordinator = trem2_update_coordinator(
         hass,
-        timedelta(seconds=5),
         store_eew,
         store_report,
     )
@@ -130,7 +128,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await install_font(font_path)
 
     # Register actions
-    await async_register_services(hass, update_coordinator, DOMAIN)
+    await async_register_services(hass, update_coordinator)
 
     _LOGGER.info(STARTUP)
     return True
