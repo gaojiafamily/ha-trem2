@@ -16,11 +16,11 @@ English | [繁體中文](README_zhHant.md)<br>
 
 
 ## Preview
-![image](https://github.com/user-attachments/assets/96193e8b-d820-40f6-acb1-3e8f1c481e3b)
+![trem2](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/preview.png)
 1. The property of Image can be used to obtain the estimated seismic intensity.
 2. [Event triggers](README.md#Event) are now supported.
 
-![trem2](https://github.com/user-attachments/assets/3d6af2ca-139e-41dd-9a93-03d9c340f7ad)
+![trem2](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/trem2.png)
 **The recent report data is displayed by default**
 
 
@@ -75,13 +75,20 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 <br>
 
 
-## Event
-| Event | Summary | Note |
+## Reference
+### Event
+| Name | Summary | Note |
 | :------------ | :------------ | :------------ |
 | trem2_notification | Earthquake Early Warning | Including simulation <br> the origin field will display LOCAL for simulations <br> and REMOTE when receiving a real server alert |
 | trem2_report | Earthquake Report | |
 | trem2_image_saved | Image Saved | |
-
+### Service
+| Name | Summary | Note |
+| :------------ | :------------ | :------------ |
+| Save Image | Saved Image, with the file name as the eew or report id. | The image use relative paths and are stored in the 'www' directory by default. |
+| Simulating Earthquake | Please refer to the example data. | To stop simulation, `leave empty` or un-check. |
+| Set Http Node | Switch the `HTTP` server node or specify the server location. | If the operation fails, it will automatically fallback or retry available servers with exponential backoff. |
+| Set WebSocket Node | Switch the `WebSocket` server node or specify the server location. | **ExpTech VIP Only** |
 
 <hr>
 <br>
@@ -89,14 +96,14 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 ## Data Source
 - [x] Http protocol
 - [ ] Websocket protocol (Exptech VIP only)
-- [ ] Custom server (ECS only)
+- [x] Custom server (Using [Service](README.md#Service))
 
 
 <hr>
 <br>
 
 ## Known issues
-- [x] QR Code invalid.
+- [ ] Earthquake alerts include sources other than the CWA. (This option was planned for release in v1.2.0, but was accidentally published early.)
 
 <br>
 
