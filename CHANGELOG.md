@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025/04/22
+
+### Added
+- ImageEntity extra_attr add TREM report image url.
+- `set_http_node` and `set_ws_node` in services, To set specified server URL by the user.
+
+
+### Fix
+- Service: save2file default using serail.
+- Report intensity mapping incorrect.
+
+### Refactor & Improvements
+- Add connection validation and backoff logic.
+
+
 ## [1.1.1] - 2025/04/16
 
 ### Fix
@@ -40,5 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial commit
 
 
-[1.1.0]: https://github.com/gaojiafamily/ha-trem2/compare/v1.0.0...v1.1.0
+[1.1.2]: https://github.com/gaojiafamily/ha-trem2/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/gaojiafamily/ha-trem2/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/gaojiafamily/ha-trem2/compare/v1.0.0...v1.1.0
