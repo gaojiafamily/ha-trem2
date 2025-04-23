@@ -16,11 +16,11 @@
 
 
 ## 介紹
-![image](https://github.com/user-attachments/assets/96193e8b-d820-40f6-acb1-3e8f1c481e3b)
+![preview](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/preview.png)
 1. 預估震度可以到圖片屬性查看.
 2. 自動化可以[使用事件](README_zhHant.md#事件)來達成.
 
-![trem2](https://github.com/user-attachments/assets/3d6af2ca-139e-41dd-9a93-03d9c340f7ad)
+![trem2](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/trem2.png)
 **預設顯示上一筆地震報表資料**
 
 
@@ -75,12 +75,20 @@
 <br>
 
 
-## 事件
+## 參考資料
+### 事件
 | 名稱 | 說明 | 備註 |
 | :------------ | :------------ | :------------ |
 | trem2_notification | 地震速報 | 包含模擬(origin 會顯示 LOCAL) <br> 來自伺服器的則會顯示 REMOTE |
 | trem2_report | 地震報告已更新時會觸發 | |
 | trem2_image_saved | 圖片儲存時會觸發 | |
+### 服務
+| 名稱 | 說明 | 備註 |
+| :------------ | :------------ | :------------ |
+| Save Image | 圖片儲存，檔案名稱儲存為速報或報告編號 | 使用相對路徑儲存，預設將會儲存至 www 目錄下 |
+| Simulating Earthquake | 在服務中有填寫範例資料可參考 | 留空或取消勾選 `Earthquake Data` 即可停止模擬 |
+| Set Http Node | 切換http伺服器節點或指定伺服器位置 | 當失敗時會自動回退或指數重試可用的伺服器 |
+| Set WebSocket Node | 切換ws伺服器節點或指定伺服器位置 | **僅對 ExpTech VIP 有效** |
 
 
 <hr>
@@ -88,15 +96,15 @@
 
 ## 資料來源
 - [x] Http 協定
-- [ ] Websocket 協定 (Exptech VIP only)
-- [ ] 自訂伺服器 (ECS only)
+- [ ] WebSocket 協定 (**僅對 ExpTech VIP 有效**)
+- [x] 自訂伺服器 (請[使用服務](README_zhHant.md#服務)設定)
 
 
 <hr>
 <br>
 
 ## 已知問題
-- [x] QR Code 不正確
+- [ ] 地震速報有來自其他非中央氣象局資料 (預計v1.2.0開放的選項，不小心提前發布了)
 
 <br>
 
