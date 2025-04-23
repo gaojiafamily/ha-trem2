@@ -2,13 +2,27 @@
 
 from datetime import UTC
 from zoneinfo import ZoneInfo
+from homeassistant.const import ATTR_LATITUDE, ATTR_LOCATION, ATTR_LONGITUDE
 
 # Initialize
-CONF_NAME = "name"
-DEFAULT_NAME = "TREM"
+DEFAULT_NAME = "TREM2"
 DEFAULT_ICON = "mdi:waveform"
 DOMAIN = "trem2"
 PLATFORMS = ["image", "sensor"]
+
+# Config
+CONF_PASS = "pass"
+CONF_PROVIDER = "provider"
+PROVIDER_OPTIONS = [
+    ("全部 (ALL)", ""),
+    ("中央氣象署 (CWA)", "cwa"),
+    ("日本防災科研 (NIED)", "nied"),
+    ("日本氣象廳 (JMA)", "jma"),
+    ("韓國氣象廳 (KMA)", "kma"),
+    ("中國四川省地震局 (SCDZJ)", "scdzj"),
+    ("中國福建省地震局 (FJDZJ)", "fjdzj"),
+]
+SOURCE_INIT = "init"
 
 # Proj
 CLIENT_NAME = "HA-TREM2"
@@ -17,7 +31,7 @@ ISSUE_URL = f"{PROJECT_URL}/issues"
 OFFICIAL_URL = "https://www.gj-smart.com"
 
 # Version
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 
 # Timezone
 TZ_TW = ZoneInfo("Asia/Taipei")
@@ -25,19 +39,13 @@ TZ_UTC = UTC
 
 # General sensor attributes
 ATTRIBUTION = "本訊息僅提供應變參考，因時效需求存在不準確性。"
-ATTR_SAVE2FILE = "filename"
 ATTR_REPORT_IMG_URL = "report_img_url"
-ATTR_API_URL = "api_url"
 ATTR_API_NODE = "api_node"
-ATTR_DATA = "data"
 ATTR_ID = "serial"
 ATTR_AUTHOR = "provider"
-ATTR_LNG = "longitude"
-ATTR_LAT = "latitude"
 ATTR_DEPTH = "depth"
 ATTR_MAG = "magnitude"
 ATTR_LIST = "list"
-ATTR_LOC = "location"
 ATTR_TIME = "time_of_occurrence"
 ATTR_COUNTY = {
     "TWCHA": "彰化縣",
@@ -66,25 +74,23 @@ ATTR_COUNTY = {
 NOTIFICATION_ATTR = [
     ATTR_ID,
     ATTR_AUTHOR,
-    ATTR_LNG,
-    ATTR_LAT,
+    ATTR_LONGITUDE,
+    ATTR_LATITUDE,
     ATTR_DEPTH,
     ATTR_MAG,
-    ATTR_LOC,
+    ATTR_LOCATION,
     ATTR_LIST,
     ATTR_TIME,
 ]
 MANUFACTURER = "居智科技"
 
 # Coordinator
-TREM2_COORDINATOR = "trem2_coordinator"
-TREM2_NAME = "trem2_name"
+UPDATE_COORDINATOR = "coordinator"
 UPDATE_LISTENER = "update_listener"
 
 # Stored
 STORAGE_EEW = f"{DOMAIN}/recent_data.json"
 STORAGE_REPORT = f"{DOMAIN}/report.json"
-STORAGE_TOKEN = f"{DOMAIN}/token.json"
 
 # REST
 HA_USER_AGENT = "TREM custom integration for Home Assistant (https://github.com/gaojiafamily/ha-trem2)"
@@ -105,6 +111,7 @@ WS_URLS = {
 }
 REPORT_URL = "https://api.exptech.dev/api/v2/eq/report"
 REPORT_IMG_URL = "https://api-1.exptech.dev/file/images/report"
+LOGIN_URL = "https://api-1.exptech.dev/api/v3/et/login"
 REQUEST_TIMEOUT = 30  # seconds
 
 # STRINGS

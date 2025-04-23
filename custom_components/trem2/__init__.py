@@ -9,6 +9,7 @@ import subprocess
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.const import CONF_NAME
 from homeassistant.helpers.storage import Store
 
 from .const import (
@@ -18,8 +19,7 @@ from .const import (
     STARTUP,
     STORAGE_EEW,
     STORAGE_REPORT,
-    TREM2_COORDINATOR,
-    TREM2_NAME,
+    UPDATE_COORDINATOR,
     UPDATE_LISTENER,
 )
 from .services import async_register_services
@@ -28,38 +28,35 @@ from .update_coordinator import trem2_update_coordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up Custom Image Display from a config entry."""
     # migrate data (also after first setup) to options
-    if entry.data:
-        hass.config_entries.async_update_entry(entry, data={}, options=entry.data)
+    if config_entry.data:
+        hass.config_entries.async_update_entry(config_entry, data={}, options=config_entry.data)
 
     # Store the config entry data in hass.data
     hass.data.setdefault(DOMAIN, {})
-    domain_data: dict = {}
+    store_eew = Store(hass, 2, STORAGE_EEW)
+    store_report = Store(hass, 2, STORAGE_REPORT)
 
-    store_eew = Store(hass, 1, STORAGE_EEW)
-    store_report = Store(hass, 1, STORAGE_REPORT)
+    # Refresh data for coordinator when a config entry is setup
     update_coordinator = trem2_update_coordinator(
         hass,
         store_eew,
         store_report,
     )
-    domain_data = {
-        TREM2_COORDINATOR: update_coordinator,
-        TREM2_NAME: DEFAULT_NAME,
+    await update_coordinator.async_config_entry_first_refresh()
+
+    # Set up the update listener and coordinator params
+    update_listener = config_entry.add_update_listener(async_update_options)
+    hass.data[DOMAIN][config_entry.entry_id] = {
+        CONF_NAME: DEFAULT_NAME,
+        UPDATE_COORDINATOR: update_coordinator,
+        UPDATE_LISTENER: update_listener,
     }
 
-    # Set up the coordinator
-    await update_coordinator.async_config_entry_first_refresh()
-    hass.data[DOMAIN][entry.entry_id] = domain_data
-
-    # Set up the coordinator listener
-    update_listener = entry.add_update_listener(async_update_options)
-    hass.data[DOMAIN][entry.entry_id][UPDATE_LISTENER] = update_listener
-
     # Set up the platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     assets_path = f"custom_components/{DOMAIN}/assets"
     font_name = "Noto Sans TC"

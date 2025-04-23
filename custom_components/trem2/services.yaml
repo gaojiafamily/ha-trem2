@@ -36,7 +36,7 @@ set_http_node:
   name: "Set Http Node"
   description: "Set the http node specified."
   fields:
-    api_url:
+    url:
       name: "Server URL"
       description: "Set specified server URL by the user."
       example: "http://127.0.0.1:8000/api/v2/eq/eew"
@@ -59,7 +59,7 @@ set_ws_node:
   name: "Set WebSocket Node"
   description: "Set the WebSocket node specified."
   fields:
-    api_url:
+    url:
       name: "Server URL"
       description: "Set specified server URL by the user."
       example: "wss://127.0.0.1:8000/websocket"

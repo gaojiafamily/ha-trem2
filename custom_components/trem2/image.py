@@ -13,7 +13,7 @@ from pyvips import Image
 
 from homeassistant.components.image import ImageEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.const import ATTR_ATTRIBUTION, CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.util import dt as dt_util
@@ -27,8 +27,7 @@ from .const import (
     MANUFACTURER,
     OFFICIAL_URL,
     REPORT_IMG_URL,
-    TREM2_COORDINATOR,
-    TREM2_NAME,
+    UPDATE_COORDINATOR,
     __version__,
 )
 from .core.earthquake import get_calculate_intensity, intensity_to_text, round_intensity
@@ -45,8 +44,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up the image entity from a config entry."""
     domain_data: dict = hass.data[DOMAIN][config_entry.entry_id]
-    name: str = domain_data[TREM2_NAME]
-    coordinator: trem2_update_coordinator = domain_data[TREM2_COORDINATOR]
+    name: str = domain_data[CONF_NAME]
+    coordinator: trem2_update_coordinator = domain_data[UPDATE_COORDINATOR]
 
     # Create the image entity
     device = monitoring_image(hass, name, config_entry, coordinator)
@@ -120,81 +119,86 @@ class monitoring_image(ImageEntity):
             return
 
         # Get the latest notification data
-        eq_data = await self.get_eew_data()
-        eew_id = eq_data.get("id", "")
-        if "serial" in eq_data:
-            eq_id = "-".join(
-                map(
-                    str,
-                    (
-                        eew_id,
-                        eq_data.get("serial", ""),
-                    ),
-                )
-            )
-        else:
-            pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
-            match = re.search(
-                pattern,
-                eew_id,
-            )
-            eq_id = "-".join(match.groups())
-
-        # Check state change
-        if self._cached_image_id == eq_id:
-            return
-
-        # Calculate the intensity
-        if "list" in eq_data:
-            intensitys = await self.get_int_data(eq_data["list"])
-            self._attr_value = {ATTR_REPORT_IMG_URL: f"{REPORT_IMG_URL}/{eew_id}.jpg"}
-        else:
-            intensitys = (
-                get_calculate_intensity(
-                    eq_data.get(
-                        "eq",
-                        None,
+        try:
+            eq_data = await self.get_eew_data()
+            eew_id = eq_data.get("id", "")
+            if "serial" in eq_data:
+                eq_id = "-".join(
+                    map(
+                        str,
+                        (
+                            eew_id,
+                            eq_data.get("serial", ""),
+                        ),
                     )
                 )
-                or await self.get_int_data()
+            else:
+                pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
+                match = re.search(
+                    pattern,
+                    eew_id,
+                )
+                eq_id = "-".join(match.groups())
+
+            # Check state change
+            if self._cached_image_id == eq_id:
+                return
+
+            # Calculate the intensity
+            if "list" in eq_data:
+                intensitys = await self.get_int_data(eq_data["list"])
+                self._attr_value = {ATTR_REPORT_IMG_URL: f"{REPORT_IMG_URL}/{eew_id}.jpg"}
+            else:
+                intensitys = (
+                    get_calculate_intensity(
+                        eq_data.get(
+                            "eq",
+                            None,
+                        )
+                    )
+                    or await self.get_int_data()
+                )
+
+                # Write the attributes with the intensity values greater than 0
+                self._attr_value = {
+                    ATTR_COUNTY.get(k, k): intensity_to_text(v) for k, v in intensitys.items() if round_intensity(v) > 0
+                }
+
+            # QR Code data
+            assets_path = f"custom_components/{DOMAIN}/assets"
+            bg_path = hass_config.path(f"{assets_path}/brand.svg")
+            url = OFFICIAL_URL
+            if "md5" in eq_data:
+                bg_path = hass_config.path(f"{assets_path}/cwa_logo.svg")
+                url = f"https://www.cwa.gov.tw/V8/C/E/EQ/EQ{eq_id}.html"
+
+            # Draw the isoseismal map
+            svg_cont = draw_isoseismal_map(
+                intensitys,
+                eq_data,
+                eq_id,
+                bg_path,
+                url,
             )
 
-            # Write the attributes with the intensity values greater than 0
-            self._attr_value = {
-                ATTR_COUNTY.get(k, k): intensity_to_text(v) for k, v in intensitys.items() if round_intensity(v) > 0
-            }
+            # Remove BOM and decode the SVG data
+            svg_byte = svg_cont.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
 
-        # QR Code data
-        assets_path = f"custom_components/{DOMAIN}/assets"
-        bg_path = hass_config.path(f"{assets_path}/brand.svg")
-        url = OFFICIAL_URL
-        if "md5" in eq_data:
-            bg_path = hass_config.path(f"{assets_path}/cwa_logo.svg")
-            url = f"https://www.cwa.gov.tw/V8/C/E/EQ/EQ{eq_id}.html"
+            # Convert the SVG data to PNG using pyvips
+            svg_data: Image = await asyncio.to_thread(Image.new_from_buffer, svg_byte, "")
+            output = await asyncio.to_thread(svg_data.write_to_buffer, ".png")
 
-        # Draw the isoseismal map
-        svg_cont = draw_isoseismal_map(
-            intensitys,
-            eq_data,
-            eq_id,
-            bg_path,
-            url,
-        )
+            # Store the PNG data in the _cached_image
+            self._cached_image = output
+            self._attr_image_last_updated = dt_util.utcnow()
 
-        # Remove BOM and decode the SVG data
-        svg_byte = svg_cont.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
-
-        # Convert the SVG data to PNG using pyvips
-        svg_data: Image = await asyncio.to_thread(Image.new_from_buffer, svg_byte, "")
-        output = await asyncio.to_thread(svg_data.write_to_buffer, ".png")
-
-        # Store the PNG data in the _cached_image
-        self._cached_image = output
-        self._attr_image_last_updated = dt_util.utcnow()
-
-        # Update the _cached_image_id
-        self._cached_image_id = eq_id
-        self._attr_value[ATTR_ID] = eq_id
+            # Update the _cached_image_id
+            self._cached_image_id = eq_id
+            self._attr_value[ATTR_ID] = eq_id
+        except TypeError as ex:
+            _LOGGER.error("TypeError occurred while processing earthquake data: %s", ex)
+        except AttributeError as ex:
+            _LOGGER.error("AttributeError occurred while accessing earthquake data: %s", str(ex), exc_info=ex)
 
         # Update the attributes
         self.async_write_ha_state()
@@ -233,7 +237,7 @@ class monitoring_image(ImageEntity):
         # Otherwise, return the notification data
         return eew_data
 
-    async def get_int_data(self, intensitys: dict) -> dict:
+    async def get_int_data(self, intensitys: dict | None = None) -> dict:
         """Get the latest intensity data."""
         int_list = {}
 

@@ -10,7 +10,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LOCATION, ATTR_LONGITUDE, CONF_NAME
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 
@@ -18,10 +18,7 @@ from .const import (
     ATTR_AUTHOR,
     ATTR_DEPTH,
     ATTR_ID,
-    ATTR_LAT,
     ATTR_LIST,
-    ATTR_LNG,
-    ATTR_LOC,
     ATTR_MAG,
     ATTR_TIME,
     ATTRIBUTION,
@@ -29,8 +26,7 @@ from .const import (
     DOMAIN,
     MANUFACTURER,
     NOTIFICATION_ATTR,
-    TREM2_COORDINATOR,
-    TREM2_NAME,
+    UPDATE_COORDINATOR,
     TZ_TW,
     TZ_UTC,
     __version__,
@@ -47,8 +43,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up the TREM sensor from config."""
     domain_data: dict = hass.data[DOMAIN][config_entry.entry_id]
-    name: str = domain_data[TREM2_NAME]
-    coordinator: trem2_update_coordinator = domain_data[TREM2_COORDINATOR]
+    name: str = domain_data[CONF_NAME]
+    coordinator: trem2_update_coordinator = domain_data[UPDATE_COORDINATOR]
 
     # Create the sensor entity
     device = notification_sensor(hass, name, config_entry, coordinator)
@@ -90,66 +86,70 @@ class notification_sensor(SensorEntity):
 
     async def async_update(self):
         """Schedule a custom update via the common entity update service."""
-        # Get the latest earthquake data
-        notification = await self.get_eew_data()
-        eew: dict = notification.get("eq", {})
-        time: Any | None = eew.get("time")
-        time_of_occurrence = ""
+        try:
+            notification = await self.get_eew_data()
+            eew: dict = notification.get("eq", {})
+            time: Any | None = eew.get("time")
+            time_of_occurrence = ""
 
-        if "serial" in notification:
-            notification_id = "-".join(
-                map(
-                    str,
-                    (
-                        notification.get("id", ""),
-                        notification.get("serial", ""),
-                    ),
+            if "serial" in notification:
+                notification_id = "-".join(
+                    map(
+                        str,
+                        (
+                            notification.get("id", ""),
+                            notification.get("serial", ""),
+                        ),
+                    )
                 )
-            )
-        else:
-            pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
-            match = re.search(
-                pattern,
-                notification.get("id", ""),
-            )
-            if match is None:
-                notification_id = ""
             else:
-                notification_id = "-".join(match.groups())
+                pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
+                match = re.search(
+                    pattern,
+                    notification.get("id", ""),
+                )
+                if match is None:
+                    notification_id = ""
+                else:
+                    notification_id = "-".join(match.groups())
 
-        # formatted the time of occurrence
-        if time:
-            formatted_time = datetime.fromtimestamp(
-                round(time / 1000),
-                TZ_UTC,
-            ).astimezone(TZ_TW)
-            time_of_occurrence = formatted_time.strftime("%Y/%m/%d %H:%M:%S")
+            # formatted the time of occurrence
+            if time:
+                formatted_time = datetime.fromtimestamp(
+                    round(time / 1000),
+                    TZ_UTC,
+                ).astimezone(TZ_TW)
+                time_of_occurrence = formatted_time.strftime("%Y/%m/%d %H:%M:%S")
 
-        # Check state change
-        if self._state != notification_id:
-            intensitys = {}
+            # Check state change
+            if self._state != notification_id:
+                intensitys = {}
 
-            for county, details in notification.get("list", {}).items():
-                county_int = details["int"]
-                intensitys[county] = county_int
-                for town in details["town"]:
-                    intensitys[f"{county}{town}"] = county_int
+                for county, details in notification.get("list", {}).items():
+                    county_int = details["int"]
+                    intensitys[county] = county_int
+                    for town in details["town"]:
+                        intensitys[f"{county}{town}"] = county_int
 
-            self._attr_value[ATTR_AUTHOR] = notification.get("author", "")
-            self._attr_value[ATTR_ID] = notification_id
-            self._attr_value[ATTR_LOC] = eew.get("loc", "")
-            self._attr_value[ATTR_LNG] = eew.get("lon", "")
-            self._attr_value[ATTR_LAT] = eew.get("lat", "")
-            self._attr_value[ATTR_MAG] = eew.get("mag", "")
-            self._attr_value[ATTR_DEPTH] = eew.get("depth", "")
-            self._attr_value[ATTR_TIME] = time_of_occurrence
-            if bool(intensitys):
-                self._attr_value[ATTR_LIST] = intensitys
-            else:
-                self._attr_value.pop(ATTR_LIST, None)
+                self._attr_value[ATTR_AUTHOR] = notification.get("author", "")
+                self._attr_value[ATTR_ID] = notification_id
+                self._attr_value[ATTR_LOCATION] = eew.get("loc", "")
+                self._attr_value[ATTR_LONGITUDE] = eew.get("lon", "")
+                self._attr_value[ATTR_LATITUDE] = eew.get("lat", "")
+                self._attr_value[ATTR_MAG] = eew.get("mag", "")
+                self._attr_value[ATTR_DEPTH] = eew.get("depth", "")
+                self._attr_value[ATTR_TIME] = time_of_occurrence
+                if bool(intensitys):
+                    self._attr_value[ATTR_LIST] = intensitys
+                else:
+                    self._attr_value.pop(ATTR_LIST, None)
 
-            # Update the state
-            self._state = notification_id
+                # Update the state
+                self._state = notification_id
+        except TypeError as ex:
+            _LOGGER.error("TypeError occurred while processing earthquake data: %s", ex)
+        except AttributeError as ex:
+            _LOGGER.error("AttributeError occurred while accessing earthquake data: %s", ex, exc_info=ex)
 
         return self
 

@@ -8,12 +8,12 @@ import logging
 from pathlib import Path
 
 from homeassistant.components.image import ImageEntity
-from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.const import ATTR_ENTITY_ID, CONF_FILENAME, CONF_SERVICE_DATA, CONF_URL
 from homeassistant.core import EventOrigin, HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import async_get_platforms
 
-from .const import ATTR_API_URL, ATTR_API_NODE, ATTR_DATA, ATTR_SAVE2FILE, DOMAIN
+from .const import ATTR_API_NODE, DOMAIN
 from .update_coordinator import trem2_update_coordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def create_save_image_service(hass: HomeAssistant):
         filepath = Path(
             hass.config.path(
                 call.data.get(
-                    ATTR_SAVE2FILE,
+                    CONF_FILENAME,
                     f"www/{entity.extra_state_attributes.get('serial', DOMAIN)}",
                 )
             )
@@ -82,7 +82,7 @@ def create_simulating_earthquake_service(hass: HomeAssistant, coordinator: trem2
 
     async def simulating_earthquake(call: ServiceCall):
         """Simulate an earthquake."""
-        data = call.data.get(ATTR_DATA, "")
+        data = call.data.get(CONF_SERVICE_DATA, "")
         coordinator.simulating_notification = data
 
         if data == "":
@@ -100,11 +100,11 @@ def create_set_http_node_service(hass: HomeAssistant, coordinator: trem2_update_
 
     async def set_http_node(call: ServiceCall):
         """Set the node specified by the user."""
-        base_url = call.data.get(ATTR_API_URL)
+        base_url = call.data.get(CONF_URL)
         station = call.data.get(ATTR_API_NODE)
 
         if base_url is None and station is None:
-            raise ServiceValidationError("Both `Server URL` and `node station` must be provided.")
+            raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`, One must be provided.")
 
         if base_url:
             coordinator.update_interval = timedelta(seconds=1)
@@ -134,11 +134,11 @@ def create_set_ws_node_service(hass: HomeAssistant, coordinator: trem2_update_co
 
     async def set_ws_node(call: ServiceCall):
         """Set the node specified by the user."""
-        base_url = call.data.get(ATTR_API_URL, None)
+        base_url = call.data.get(CONF_URL, None)
         station = call.data.get(ATTR_API_NODE, None)
 
         if base_url is None and station is None:
-            raise ServiceValidationError("Missing `Server URL` or `node station`.")
+            raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`, One must be provided.")
 
         if not coordinator.http_manager.websocket:
             raise HomeAssistantError("WebSocket is unavailable.")
