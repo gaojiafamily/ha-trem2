@@ -8,62 +8,60 @@ from pathlib import Path
 import subprocess
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_API_TOKEN, CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store
 
 from .const import (
     DEFAULT_NAME,
     DOMAIN,
     PLATFORMS,
     STARTUP,
-    STORAGE_EEW,
-    STORAGE_REPORT,
-    TREM2_COORDINATOR,
-    TREM2_NAME,
+    UPDATE_COORDINATOR,
     UPDATE_LISTENER,
 )
 from .services import async_register_services
-from .update_coordinator import trem2_update_coordinator
+from .update_coordinator import Trem2UpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up Custom Image Display from a config entry."""
-    # migrate data (also after first setup) to options
-    if entry.data:
-        hass.config_entries.async_update_entry(entry, data={}, options=entry.data)
+    # Migrate data (also after first setup) to options
+    if config_entry.data:
+        hass.config_entries.async_update_entry(config_entry, data={}, options=config_entry.data)
 
     # Store the config entry data in hass.data
     hass.data.setdefault(DOMAIN, {})
-    domain_data: dict = {}
 
-    store_eew = Store(hass, 1, STORAGE_EEW)
-    store_report = Store(hass, 1, STORAGE_REPORT)
-    update_coordinator = trem2_update_coordinator(
+    # Refresh data for coordinator when a config entry is setup
+    update_coordinator = Trem2UpdateCoordinator(
         hass,
-        store_eew,
-        store_report,
     )
-    domain_data = {
-        TREM2_COORDINATOR: update_coordinator,
-        TREM2_NAME: DEFAULT_NAME,
+    await update_coordinator.async_config_entry_first_refresh()
+
+    # Set up the update listener and coordinator params
+    update_listener = config_entry.add_update_listener(async_update_options)
+    hass.data[DOMAIN][config_entry.entry_id] = {
+        CONF_NAME: DEFAULT_NAME,
+        UPDATE_COORDINATOR: update_coordinator,
+        UPDATE_LISTENER: update_listener,
     }
 
-    # Set up the coordinator
-    await update_coordinator.async_config_entry_first_refresh()
-    hass.data[DOMAIN][entry.entry_id] = domain_data
-
-    # Set up the coordinator listener
-    update_listener = entry.add_update_listener(async_update_options)
-    hass.data[DOMAIN][entry.entry_id][UPDATE_LISTENER] = update_listener
-
     # Set up the platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    hass.data[DOMAIN][config_entry.entry_id].setdefault("platforms", PLATFORMS)
+    platforms: list = hass.data[DOMAIN][config_entry.entry_id]["platforms"]
+    if CONF_API_TOKEN not in config_entry.options and "binary_sensor" in platforms:
+        platforms.remove("binary_sensor")
+    await hass.config_entries.async_forward_entry_setups(config_entry, platforms)
 
+    # Check if the user has the fonts installed-1
     assets_path = f"custom_components/{DOMAIN}/assets"
-    font_name = "Noto Sans TC"
-    font_path = hass.config.path(f"{assets_path}/NotoSansTC-Regular.ttf")
+    fonts_list = {
+        "Noto Sans TC": f"{assets_path}/NotoSansTC-Regular.ttf",
+        "Noto Sans SC": f"{assets_path}/NotoSansSC-Regular.ttf",
+        "Noto Sans JP": f"{assets_path}/NotoSansJP-Regular.ttf",
+    }
 
     def check_font(font_name: str) -> bool:
         """Check if font is installed."""
@@ -123,27 +121,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except subprocess.CalledProcessError as e:
             _LOGGER.error("Error installing font: %s", e)
 
-    if not check_font(font_name):
-        _LOGGER.info("Font %s not found. Installing", font_name)
-        await install_font(font_path)
+    # Check if the user has the fonts installed-2
+    for name, path in fonts_list.items():
+        if not check_font(name):
+            _LOGGER.info("Font %s not found. Installing", name)
+            await install_font(hass.config.path(path))
 
     # Register actions
     await async_register_services(hass, update_coordinator)
 
+    # Display startup message
     _LOGGER.info(STARTUP)
     return True
 
 
-async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
+async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry):
     """Handle options update."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.config_entries.async_reload(config_entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = all(
         await asyncio.gather(
-            *[hass.config_entries.async_forward_entry_unload(entry, platform) for platform in PLATFORMS]
+            *[
+                hass.config_entries.async_forward_entry_unload(
+                    config_entry,
+                    platform,
+                )
+                for platform in hass.data[DOMAIN][config_entry.entry_id]["platforms"]
+            ]
         )
     )
 
@@ -154,7 +161,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
-async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_reload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Reload a config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    await async_unload_entry(hass, config_entry)
+    await async_setup_entry(hass, config_entry)
