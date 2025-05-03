@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 import asyncio
+from datetime import timedelta
 import logging
 from pathlib import Path
 
@@ -14,17 +14,33 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import async_get_platforms
 
 from .const import ATTR_API_NODE, DOMAIN
-from .update_coordinator import trem2_update_coordinator
+from .update_coordinator import Trem2UpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_register_services(hass: HomeAssistant, coordinator: trem2_update_coordinator):
+async def async_register_services(hass: HomeAssistant, coordinator: Trem2UpdateCoordinator):
     """Register services for the custom component."""
-    hass.services.async_register(DOMAIN, "save2file", create_save_image_service(hass))
-    hass.services.async_register(DOMAIN, "simulator", create_simulating_earthquake_service(hass, coordinator))
-    hass.services.async_register(DOMAIN, "set_http_node", create_set_http_node_service(hass, coordinator))
-    hass.services.async_register(DOMAIN, "set_ws_node", create_set_ws_node_service(hass, coordinator))
+    hass.services.async_register(
+        DOMAIN,
+        "save2file",
+        create_save_image_service(hass),
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "simulator",
+        create_simulating_earthquake_service(hass, coordinator),
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "set_http_node",
+        create_set_http_node_service(coordinator),
+    )
+    hass.services.async_register(
+        DOMAIN,
+        "set_ws_node",
+        create_set_ws_node_service(coordinator),
+    )
 
 
 def create_save_image_service(hass: HomeAssistant):
@@ -72,30 +88,30 @@ def create_save_image_service(hass: HomeAssistant):
             await asyncio.to_thread(filepath.write_bytes, image)
             hass.bus.fire(f"{DOMAIN}_image_saved", {"filename": filepath.name})
         except OSError as e:
-            raise HomeAssistantError(f"Failed to save image due to file error: {e}")
+            raise HomeAssistantError(f"Failed to save image due to file error: {e}") from e
 
     return save_image
 
 
-def create_simulating_earthquake_service(hass: HomeAssistant, coordinator: trem2_update_coordinator):
+def create_simulating_earthquake_service(hass: HomeAssistant, coordinator: Trem2UpdateCoordinator):
     """Create the simulating earthquake service."""
 
     async def simulating_earthquake(call: ServiceCall):
         """Simulate an earthquake."""
-        data = call.data.get(CONF_SERVICE_DATA, "")
-        coordinator.simulating_notification = data
+        data = call.data.get(CONF_SERVICE_DATA, {})
+        coordinator.state_manager.simulating = data
 
-        if data == "":
+        if "eq" in data:
+            _LOGGER.warning("Start earthquake simulation")
+            hass.bus.fire(f"{DOMAIN}_notification", {"earthquake": data}, origin=EventOrigin.local)
+            _LOGGER.debug("Simulating data: %s", data)
+        else:
             _LOGGER.warning("Abort earthquake simulation")
-            return
-
-        _LOGGER.warning("Start earthquake simulation")
-        hass.bus.fire(f"{DOMAIN}_notification", {"earthquake": data}, origin=EventOrigin.local)
 
     return simulating_earthquake
 
 
-def create_set_http_node_service(hass: HomeAssistant, coordinator: trem2_update_coordinator):
+def create_set_http_node_service(coordinator: Trem2UpdateCoordinator):
     """Create the set HTTP node service."""
 
     async def set_http_node(call: ServiceCall):
@@ -104,32 +120,26 @@ def create_set_http_node_service(hass: HomeAssistant, coordinator: trem2_update_
         station = call.data.get(ATTR_API_NODE)
 
         if base_url is None and station is None:
-            raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`, One must be provided.")
+            raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`")
 
         if base_url:
             coordinator.update_interval = timedelta(seconds=1)
         else:
-            coordinator.update_interval = coordinator.base_interval
+            coordinator.update_interval = coordinator.conf_manager.base_interval
 
-        coordinator._initialize_task = None
+        coordinator.task_manager.initialize_task = None
         await coordinator.http_manager.initialize_route(
             base_url=base_url,
             station=station,
         )
         await coordinator.async_refresh()
 
-        event_data = {
-            "type": "server_status",
-            "current_node": station,
-            "cust_url": base_url,
-            "protocol": "http",
-        }
-        hass.bus.fire(f"{DOMAIN}_status", event_data)
+        coordinator.server_status_event()
 
     return set_http_node
 
 
-def create_set_ws_node_service(hass: HomeAssistant, coordinator: trem2_update_coordinator):
+def create_set_ws_node_service(coordinator: Trem2UpdateCoordinator):
     """Create the set WebSocket node service."""
 
     async def set_ws_node(call: ServiceCall):
@@ -138,25 +148,19 @@ def create_set_ws_node_service(hass: HomeAssistant, coordinator: trem2_update_co
         station = call.data.get(ATTR_API_NODE, None)
 
         if base_url is None and station is None:
-            raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`, One must be provided.")
+            raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`")
 
         if not coordinator.http_manager.websocket:
             raise HomeAssistantError("WebSocket is unavailable.")
 
-        coordinator._initialize_task = None
-        coordinator.update_interval - timedelta(seconds=1)
+        coordinator.task_manager.initialize_task = None
+        coordinator.update_interval = timedelta(seconds=1)
         await coordinator.ws_manager.initialize_route(
             base_url=base_url,
             station=station,
         )
         await coordinator.async_refresh()
 
-        event_data = {
-            "type": "server_status",
-            "current_node": station,
-            "cust_url": base_url,
-            "protocol": "ws",
-        }
-        hass.bus.fire(f"{DOMAIN}_status", event_data)
+        coordinator.server_status_event()
 
     return set_ws_node

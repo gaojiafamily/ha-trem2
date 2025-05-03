@@ -5,25 +5,25 @@ from __future__ import annotations
 import json
 
 from aiohttp import ClientSession
-import voluptuous as vol
 from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp.hdrs import ACCEPT, CONTENT_TYPE, METH_POST, USER_AGENT
+import voluptuous as vol
 
 from homeassistant.config_entries import (
-    ConfigEntry,
-    ConfigFlow,
     CONN_CLASS_CLOUD_POLL,
     HANDLERS,
-    OptionsFlow,
     SOURCE_REAUTH,
     SOURCE_USER,
+    ConfigEntry,
+    ConfigFlow,
+    OptionsFlow,
 )
 from homeassistant.const import (
     APPLICATION_NAME,
+    CONF_API_TOKEN,
     CONF_EMAIL,
     CONF_NAME,
     CONF_PASSWORD,
-    CONF_API_TOKEN,
     CONTENT_TYPE_JSON,
     __version__ as HAVERSION,
 )
@@ -64,13 +64,11 @@ class TREM2FlowHandler(ConfigFlow, domain=DOMAIN):
         if user_input is None:
             return self.async_show_form(
                 step_id=SOURCE_USER,
-                data_schema=vol.Schema(
-                    {
-                        vol.Optional(CONF_EMAIL): str,
-                        vol.Optional(CONF_PASSWORD): str,
-                        vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
-                    }
-                ),
+                data_schema=vol.Schema({
+                    vol.Optional(CONF_EMAIL): str,
+                    vol.Optional(CONF_PASSWORD): str,
+                    vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
+                }),
             )
 
         # ExpTech account and password validation
@@ -116,13 +114,11 @@ class TREM2FlowHandler(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id=SOURCE_REAUTH,
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_EMAIL): str,
-                    vol.Required(CONF_PASSWORD): str,
-                    vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
-                }
-            ),
+            data_schema=vol.Schema({
+                vol.Required(CONF_EMAIL): str,
+                vol.Required(CONF_PASSWORD): str,
+                vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
+            }),
             errors=error,
         )
 
@@ -144,15 +140,13 @@ class TREM2FlowHandler(ConfigFlow, domain=DOMAIN):
         # Request to re-enter ExpTech account and password
         return self.async_show_form(
             step_id=SOURCE_USER,
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_EMAIL, default=user_input.get(CONF_EMAIL, "")): str,
-                    vol.Required(CONF_PASSWORD): str,
-                    vol.Required(CONF_PROVIDER, default=user_input.get(CONF_PROVIDER, "")): vol.In(
-                        [x[0] for x in PROVIDER_OPTIONS]
-                    ),
-                }
-            ),
+            data_schema=vol.Schema({
+                vol.Required(CONF_EMAIL, default=user_input.get(CONF_EMAIL, "")): str,
+                vol.Required(CONF_PASSWORD): str,
+                vol.Required(CONF_PROVIDER, default=user_input.get(CONF_PROVIDER, "")): vol.In([
+                    x[0] for x in PROVIDER_OPTIONS
+                ]),
+            }),
             errors={"base": result.get("error", "unknown")},
         )
 
@@ -172,13 +166,11 @@ class OptionsFlowHandler(OptionsFlow):
             return self.async_show_form(
                 step_id=SOURCE_INIT,
                 data_schema=self.add_suggested_values_to_schema(
-                    vol.Schema(
-                        {
-                            vol.Optional(CONF_EMAIL): str,
-                            vol.Optional(CONF_PASSWORD): str,
-                            vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
-                        }
-                    ),
+                    vol.Schema({
+                        vol.Optional(CONF_EMAIL): str,
+                        vol.Optional(CONF_PASSWORD): str,
+                        vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
+                    }),
                     self.config_entry.options,
                 ),
             )
@@ -208,15 +200,13 @@ class OptionsFlowHandler(OptionsFlow):
         # Request to re-enter ExpTech account and password
         return self.async_show_form(
             step_id=SOURCE_INIT,
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_EMAIL, default=user_input.get(CONF_EMAIL, "")): str,
-                    vol.Required(CONF_PASSWORD): str,
-                    vol.Required(CONF_PROVIDER, default=user_input.get(CONF_PROVIDER, "")): vol.In(
-                        [x[0] for x in PROVIDER_OPTIONS]
-                    ),
-                }
-            ),
+            data_schema=vol.Schema({
+                vol.Required(CONF_EMAIL, default=user_input.get(CONF_EMAIL, "")): str,
+                vol.Required(CONF_PASSWORD): str,
+                vol.Required(CONF_PROVIDER, default=user_input.get(CONF_PROVIDER, "")): vol.In([
+                    x[0] for x in PROVIDER_OPTIONS
+                ]),
+            }),
             errors={"base": result.get("error", "unknown")},
         )
 

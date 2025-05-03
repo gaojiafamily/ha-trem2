@@ -8,8 +8,8 @@ from pathlib import Path
 import subprocess
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.const import CONF_NAME
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import (
@@ -23,7 +23,7 @@ from .const import (
     UPDATE_LISTENER,
 )
 from .services import async_register_services
-from .update_coordinator import trem2_update_coordinator
+from .update_coordinator import Trem2UpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,10 +37,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     # Store the config entry data in hass.data
     hass.data.setdefault(DOMAIN, {})
     store_eew = Store(hass, 2, STORAGE_EEW)
-    store_report = Store(hass, 2, STORAGE_REPORT)
+    store_report = Store(hass, 1, STORAGE_REPORT)
 
     # Refresh data for coordinator when a config entry is setup
-    update_coordinator = trem2_update_coordinator(
+    update_coordinator = Trem2UpdateCoordinator(
         hass,
         store_eew,
         store_report,
@@ -59,8 +59,11 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     assets_path = f"custom_components/{DOMAIN}/assets"
-    font_name = "Noto Sans TC"
-    font_path = hass.config.path(f"{assets_path}/NotoSansTC-Regular.ttf")
+    fonts_list = {
+        "Noto Sans TC": f"{assets_path}/NotoSansTC-Regular.ttf",
+        "Noto Sans SC": f"{assets_path}/NotoSansSC-Regular.ttf",
+        "Noto Sans JP": f"{assets_path}/NotoSansJP-Regular.ttf",
+    }
 
     def check_font(font_name: str) -> bool:
         """Check if font is installed."""
@@ -120,9 +123,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         except subprocess.CalledProcessError as e:
             _LOGGER.error("Error installing font: %s", e)
 
-    if not check_font(font_name):
-        _LOGGER.info("Font %s not found. Installing", font_name)
-        await install_font(font_path)
+    for name, path in fonts_list.items():
+        if not check_font(name):
+            _LOGGER.info("Font %s not found. Installing", name)
+            await install_font(hass.config.path(path))
 
     # Register actions
     await async_register_services(hass, update_coordinator)
@@ -139,9 +143,13 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = all(
-        await asyncio.gather(
-            *[hass.config_entries.async_forward_entry_unload(entry, platform) for platform in PLATFORMS]
-        )
+        await asyncio.gather(*[
+            hass.config_entries.async_forward_entry_unload(
+                entry,
+                platform,
+            )
+            for platform in PLATFORMS
+        ])
     )
 
     if unload_ok:
