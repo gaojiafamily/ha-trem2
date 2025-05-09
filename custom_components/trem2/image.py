@@ -212,7 +212,9 @@ class MonitoringImage(ImageEntity):
             svg_byte = svg_cont.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
 
             # Convert the SVG data to PNG using pyvips
-            svg_data: Image = await asyncio.to_thread(Image.new_from_buffer, svg_byte, "")
+            svg_data: Image = await asyncio.to_thread(
+                Image.new_from_buffer, svg_byte, ""
+            )
             output = await asyncio.to_thread(svg_data.write_to_buffer, ".png")
 
             # Store the PNG data in the _cached_image
@@ -236,8 +238,8 @@ class MonitoringImage(ImageEntity):
 
     async def get_eew_data(self) -> dict:
         """Get the report or latest notification data."""
-        fetch_eew = self._coordinator.state_manager.earthquake
-        fetch_report = self._coordinator.state_manager.report_data
+        fetch_eew = self._coordinator.earthquake_notification
+        fetch_report = self._coordinator.report_data
 
         # Get the latest earthquake data
         if isinstance(fetch_eew, list) and len(fetch_eew) > 0:

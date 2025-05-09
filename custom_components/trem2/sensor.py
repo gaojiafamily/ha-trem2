@@ -7,9 +7,19 @@ import logging
 import re
 from typing import Any
 
-from homeassistant.components.sensor import EntityCategory, SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor import (
+    EntityCategory,
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LOCATION, ATTR_LONGITUDE, CONF_NAME
+from homeassistant.const import (
+    ATTR_ATTRIBUTION,
+    ATTR_LATITUDE,
+    ATTR_LOCATION,
+    ATTR_LONGITUDE,
+    CONF_NAME,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -213,8 +223,8 @@ class NotificationSensor(SensorEntity):
 
     async def get_eew_data(self) -> dict:
         """Get the report or latest notification data."""
-        fetch_eew = self._coordinator.state_manager.earthquake
-        fetch_report = self._coordinator.state_manager.report_data
+        fetch_eew = self._coordinator.earthquake_notification
+        fetch_report = self._coordinator.report_data
 
         # Get the latest earthquake data
         if isinstance(fetch_eew, list) and len(fetch_eew) > 0:
