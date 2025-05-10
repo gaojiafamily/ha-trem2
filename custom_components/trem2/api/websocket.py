@@ -2,26 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
+from asyncio import Task
 from dataclasses import dataclass
 from enum import Enum
+import json
+from logging import Logger
+import random
 from time import time
 
 from aiohttp import ClientSession, ClientWebSocketResponse, WSMsgType
 from aiohttp.hdrs import USER_AGENT
-from logging import Logger
+
 from homeassistant.core import HomeAssistant
-from homeassistant.const import CONF_API_TOKEN
-import random
-import asyncio
-from asyncio import Task
-import json
 
-
-from ..const import (
-    API_VERSION,
-    WS_URLS,
-    HA_USER_AGENT,
-)
+from ..const import HA_USER_AGENT, WS_URLS
 from ..exceptions import NoAvailableNodesError
 
 
@@ -138,6 +133,7 @@ class ExpTechWSClient:
 
         Returns:
             ClientWebSocketResponse: The connected WebSocket object, or None if session is not set.
+
         """
         if self.session is None:
             return None
@@ -199,14 +195,14 @@ class ExpTechWSClient:
         if type in {WSMsgType.CLOSE, WSMsgType.CLOSED, WSMsgType.CLOSING}:
             return None
 
-        payload: dict = json.loads(data)
-        event = payload.get("type")
-        msg_data: dict = payload.get("data", {})
-
         if type is WSMsgType.PONG:
             self.state.pong_time = time()
             self.state.latency = abs(time() - self.state.ping_time)
-            return msg_data
+            return self.state.message
+
+        payload: dict = json.loads(data)
+        event = payload.get("type")
+        msg_data: dict = payload.get("data", {})
 
         match event:
             case "verify":
@@ -240,6 +236,7 @@ class ExpTechWSClient:
 
         Returns:
             list | None: The received message(s) or None if not available.
+
         """
         if not self.state.conn:
             raise ConnectionResetError
@@ -332,4 +329,4 @@ class ExpTechWSClient:
         )
         self.state.keepalive_task.add_done_callback(handle_task_exception)
 
-        # 守護進程
+        # TODO: 守護進程

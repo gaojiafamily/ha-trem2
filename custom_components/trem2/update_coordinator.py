@@ -8,9 +8,6 @@ import logging
 
 from dataclasses import dataclass
 
-from .api.http import ExpTechHTTPClient
-from .api.websocket import ExpTechWSClient
-
 from homeassistant.const import CONF_API_TOKEN, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import EventOrigin, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -18,12 +15,16 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .api.http import ExpTechHTTPClient
+from .api.websocket import ExpTechWSClient
 from .const import DOMAIN, STORAGE_EEW, STORAGE_REPORT, PARAMS_OPTIONS, PROVIDER_OPTIONS
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class Trem2Conf:
+    """Class for save the TREM state retrieval."""
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -40,6 +41,8 @@ class Trem2Conf:
 
 @dataclass
 class Trem2State:
+    """Class for save the TREM state retrieval."""
+
     # initialization
     api_node = None
     retry_backoff = 1
@@ -110,7 +113,9 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         # Setup config entry options to params
         config_options = self.config_entry.options
         self.conf.params = {
-            k: get_provider_option(k, v) for k, v in config_options.items() if k in PARAMS_OPTIONS and v
+            k: get_provider_option(k, v)
+            for k, v in config_options.items()
+            if k in PARAMS_OPTIONS and v
         }
 
         # Setup Http fetch method
@@ -187,7 +192,9 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 # 使用者未訂閱
                 if len(self.ws_client.state.subscrib_service) == 0:
                     await self.ws_client.disconnect()
-                    raise ConfigEntryAuthFailed("The ExpTech VIP has expired, Please re-subscribe.")
+                    raise ConfigEntryAuthFailed(
+                        "The ExpTech VIP has expired, Please re-subscribe."
+                    )
 
                 # 取得已接收訊息並處理
                 resp = await self._handle(await self.ws_client.recv())

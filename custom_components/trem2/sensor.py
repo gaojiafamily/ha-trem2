@@ -18,7 +18,6 @@ from homeassistant.const import (
     ATTR_LATITUDE,
     ATTR_LOCATION,
     ATTR_LONGITUDE,
-    CONF_NAME,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
