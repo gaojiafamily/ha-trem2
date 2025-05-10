@@ -36,14 +36,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
 
     # Store the config entry data in hass.data
     hass.data.setdefault(DOMAIN, {})
-    store_eew = Store(hass, 2, STORAGE_EEW)
-    store_report = Store(hass, 1, STORAGE_REPORT)
 
     # Refresh data for coordinator when a config entry is setup
     update_coordinator = Trem2UpdateCoordinator(
         hass,
-        store_eew,
-        store_report,
     )
     await update_coordinator.async_config_entry_first_refresh()
 
@@ -143,13 +139,15 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = all(
-        await asyncio.gather(*[
-            hass.config_entries.async_forward_entry_unload(
-                entry,
-                platform,
-            )
-            for platform in PLATFORMS
-        ])
+        await asyncio.gather(
+            *[
+                hass.config_entries.async_forward_entry_unload(
+                    entry,
+                    platform,
+                )
+                for platform in PLATFORMS
+            ]
+        )
     )
 
     if unload_ok:

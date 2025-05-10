@@ -13,9 +13,7 @@
     "segno",
     "svg2rlg",
     "svglib",
-    "reportlab",
-    "websocket-client",
-    "rel"
+    "reportlab"
   ],
   "iot_class": "cloud_polling",
   "ssdp": [],

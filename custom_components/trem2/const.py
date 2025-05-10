@@ -13,7 +13,7 @@ PLATFORMS = ["image", "sensor"]
 
 # Config
 CONF_PASS = "pass"
-CONF_PROVIDER = "provider"
+CONF_PROVIDER = "type"
 PROVIDER_OPTIONS = [
     ("全部 (ALL)", ""),
     ("中央氣象署 (CWA)", "cwa"),
@@ -22,6 +22,9 @@ PROVIDER_OPTIONS = [
     ("韓國氣象廳 (KMA)", "kma"),
     ("中國四川省地震局 (SCDZJ)", "scdzj"),
     ("中國福建省地震局 (FJDZJ)", "fjdzj"),
+]
+PARAMS_OPTIONS = [
+    CONF_PROVIDER,
 ]
 SOURCE_INIT = "init"
 
@@ -105,10 +108,10 @@ BASE_URLS = {
     "pingtung_2": "https://lb-4.exptech.dev",
 }
 WS_URLS = {
-    "taipei_1": "wss://lb-1.exptech.dev/websocket",
-    "pingtung_1": "wss://lb-2.exptech.dev/websocket",
-    "taipei_2": "wss://lb-3.exptech.dev/websocket",
-    "pingtung_2": "wss://lb-4.exptech.dev/websocket",
+    "ws_taipei": "wss://lb-1.exptech.dev/websocket",
+    "ws_pingtung": "wss://lb-2.exptech.dev/websocket",
+    "ws_taipei_2": "wss://lb-3.exptech.dev/websocket",
+    "ws_pingtung_2": "wss://lb-4.exptech.dev/websocket",
 }
 REPORT_URL = "https://api.exptech.dev/api/v2/eq/report"
 REPORT_IMG_URL = "https://api-1.exptech.dev/file/images/report"

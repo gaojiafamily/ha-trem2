@@ -18,7 +18,7 @@
         "data": {
           "email": "ExpTech E-mail",
           "password": "ExpTech Password",
-          "provider": "Publisher"
+          "type": "Publisher"
         },
         "description": "Go to https://exptech.com.tw/pricing to subscribe."
       },
@@ -27,7 +27,7 @@
         "data": {
           "email": "ExpTech E-mail",
           "password": "ExpTech Password",
-          "provider": "Publisher"
+          "type": "Publisher"
         },
         "description": "Go to https://exptech.com.tw/pricing to subscribe."
       },
@@ -50,7 +50,7 @@
         "data": {
           "email": "ExpTech E-mail",
           "password": "ExpTech Password",
-          "provider": "Publisher"
+          "type": "Publisher"
         },
         "description": "Go to https://exptech.com.tw/pricing to subscribe."
       }

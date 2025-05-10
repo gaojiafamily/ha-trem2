@@ -15,13 +15,13 @@
     "step": {
       "user": {
         "data": {
-          "provider": "\u901f\u5831\u4f86\u6e90"
+          "type": "\u901f\u5831\u4f86\u6e90"
         },
         "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP"
       },
       "reauth": {
         "data": {
-          "provider": "\u901f\u5831\u4f86\u6e90"
+          "type": "\u901f\u5831\u4f86\u6e90"
         },
         "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP"
       },
@@ -41,7 +41,7 @@
     "step": {
       "init": {
         "data": {
-          "provider": "\u901f\u5831\u4f86\u6e90"
+          "type": "\u901f\u5831\u4f86\u6e90"
         },
         "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP"
       }

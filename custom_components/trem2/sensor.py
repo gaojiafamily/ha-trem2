@@ -223,8 +223,8 @@ class NotificationSensor(SensorEntity):
 
     async def get_eew_data(self) -> dict:
         """Get the report or latest notification data."""
-        fetch_eew = self._coordinator.earthquake_notification
-        fetch_report = self._coordinator.report_data
+        fetch_eew = self._coordinator.state.earthquake
+        fetch_report = self._coordinator.state.report
 
         # Get the latest earthquake data
         if isinstance(fetch_eew, list) and len(fetch_eew) > 0:
