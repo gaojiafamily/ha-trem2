@@ -43,11 +43,11 @@ ha-trem2 及其相關服務的所有權利、所有權與智慧財產權，均�
   - 必須在散布時附上本授權條款
   - 若有修改，需公開原始碼
   - 詳細規範請見 [AGPL-3.0 正式條款](https://www.gnu.org/licenses/agpl-3.0.html)
-- NotoSansTC 字體授權：
+- NotoSans 字體授權：
   - **署名要求**:
-    - Noto Sans TC 字體由 Google 及其他貢獻者開發。更多資訊請參閱 [Google Fonts](https://fonts.google.com/specimen/Noto+Sans+TC)
+    - Noto Sans TC/SC/JP 字體由 Google 及其他貢獻者開發。更多資訊請參閱 [Google Fonts](https://fonts.google.com)
   - **使用方式**:
-    - 字體文件（NotoSansTC-Regular.ttf）將複製至使用者的字體目錄
+    - 字體文件將複製至使用者的字體目錄
   - **授權許可範圍**:
     - 商業用途
     - 修改
@@ -61,7 +61,7 @@ ha-trem2 及其相關服務的所有權利、所有權與智慧財產權，均�
     - 修改後的衍生作品必須以相同授權條款釋出
 
 > [!IMPORTANT]
-> 本存儲庫所附 Noto Sans TC 字體僅限本專案使用，外部使用請遵守 [SIL Open Font License](https://scripts.sil.org/OFL)。
+> 本存儲庫所附 Noto Sans TC/SC/JP 字體僅限本專案使用，外部使用請遵守 [SIL Open Font License](https://scripts.sil.org/OFL)。
 
 ## 7. 訂閱條款
 

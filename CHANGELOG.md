@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025/05/18
+### Feat
+  - Add ExpTech VIP feature with WebSocket support.
+  - Add diagnostic functionality to the configuration menu.
+  - Add provider option to the configuration flow.
+  - Add Japanese and Simplified Chinese fonts (Noto Sans).
+  - Add binary sensor for vibrate notifications.
+
+### Refactor
+  - Refactor update services, translations, and data handling.
+  - Refactor update_coordinator.py to streamline data retrieval, improve error handling, and better manage WebSocket/HTTP connections.
+  - Refactor service registration method; update services.yaml to improve example entity names and add required fields for entity selection.
+  - Refactor complex logic using match-case and method splitting to comply with flake8.
+  - Introduce new classes for managing TREM state and configuration, improving code organization and readability.
+  - Change entity setup to use AddEntitiesCallback as recommended by Home Assistant.
+
+### Improvement
+  - Improve configuration flow and add enhanced error handling.
+  - Enhance English and Traditional Chinese translations for configuration flow, including re-authentication messages and descriptions.
+  - Update map display to show epicenter lat/long if offshore.
+
+### Fix
+  - Fix issue where reports were not up to date.
+  - Fix websocket not disconnecting when the integration is unloaded.
+  - Update logic for handling earthquake and report data to ensure better fallback mechanisms and data integrity.
+
 ## [1.1.2] - 2025/04/22
 
 ### Added
@@ -54,7 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial commit
 
-
+[1.2.0]: https://github.com/gaojiafamily/ha-trem2/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/gaojiafamily/ha-trem2/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/gaojiafamily/ha-trem2/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/gaojiafamily/ha-trem2/compare/v1.0.0...v1.1.0

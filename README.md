@@ -17,10 +17,12 @@ English | [繁體中文](README_zhHant.md)<br>
 
 ## Preview
 ![trem2](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/preview.png)
+<br>
 1. The property of Image can be used to obtain the estimated seismic intensity.
 2. [Event triggers](README.md#Event) are now supported.
 
 ![trem2](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/trem2.png)
+<br>
 **The recent report data is displayed by default**
 
 
@@ -38,7 +40,7 @@ English | [繁體中文](README_zhHant.md)<br>
 - [x] Isoseismal map image.
 - [x] Simulator earthquake service.
 - [ ] Calculate arrival forecast based on your location (ECS only).
-- [ ] RTS Notification (Exptech VIP only).
+- [x] Intensity Notification (Exptech VIP only).
 - [ ] Tsunami Notification (Exptech VIP only).
 
 <hr>
@@ -95,7 +97,7 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 
 ## Data Source
 - [x] Http protocol
-- [ ] Websocket protocol (Exptech VIP only)
+- [x] Websocket protocol (Exptech VIP only)
 - [x] Custom server (Using [Service](README.md#Service))
 
 
@@ -103,7 +105,6 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 <br>
 
 ## Known issues
-- [ ] Earthquake alerts include sources other than the CWA. (This option was planned for release in v1.2.0, but was accidentally published early.)
 
 <br>
 
@@ -153,7 +154,7 @@ With GUI. Configuration > Integration > Add Integration > Taiwan Real-time Earth
 ## License & Terms
 - **Open Source License**: This project is licensed under the [AGPL-3.0 License](https://www.gnu.org/licenses/agpl-3.0.html), allowing free use, modification, and distribution. For details, see the [Terms of Service](legal/TERMS_zhHant.md#6-授權條款).
 - **Enhanced Computing Service (ECS)**: Subscription is required and you must comply with the [Terms of Service](legal/TERMS_zhHant.md#7-訂閱條款), including refund policies and usage restrictions.
-- **Font License**: This project uses the [Noto Sans TC font](https://fonts.google.com/specimen/Noto+Sans+TC). For more information, see the [Terms of Service](legal/TERMS_zhHant.md#6-授權條款).
+- **Font License**: This project uses the [Noto Sans TC font](https://fonts.google.com/specimen/Noto+Sans+TC)、[Noto Sans SC font](https://fonts.google.com/specimen/Noto+Sans+SC)、[Noto Sans JP font](https://fonts.google.com/specimen/Noto+Sans+JP). For more information, see the [Terms of Service](legal/TERMS_zhHant.md#6-授權條款).
 
 <hr>
 <br>

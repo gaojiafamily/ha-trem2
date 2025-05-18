@@ -17,11 +17,13 @@
 
 ## 介紹
 ![preview](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/preview.png)
+<br>
 1. 預估震度可以到圖片屬性查看.
 2. 自動化可以[使用事件](README_zhHant.md#事件)來達成.
 
 ![trem2](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/trem2.png)
-**預設顯示上一筆地震報表資料**
+<br>
+**預設顯示最新地震報表資料**
 
 
 > [!IMPORTANT]
@@ -38,7 +40,7 @@
 - [x] 等震線圖影像
 - [x] 模擬地震服務
 - [ ] 根據您的位置預測抵達時間 (僅限 ECS)
-- [ ] RTS 通知 (僅限 Exptech VIP)
+- [x] 震動通知 (僅限 Exptech VIP)
 - [ ] 海嘯通知 (僅限 Exptech VIP)
 
 <hr>
@@ -96,7 +98,7 @@
 
 ## 資料來源
 - [x] Http 協定
-- [ ] WebSocket 協定 (**僅對 ExpTech VIP 有效**)
+- [x] WebSocket 協定 (**僅對 ExpTech VIP 有效**)
 - [x] 自訂伺服器 (請[使用服務](README_zhHant.md#服務)設定)
 
 
@@ -104,7 +106,6 @@
 <br>
 
 ## 已知問題
-- [ ] 地震速報有來自其他非中央氣象局資料 (預計v1.2.0開放的選項，不小心提前發布了)
 
 <br>
 
@@ -152,7 +153,7 @@
 ## 授權與條款
 - **開源授權**：本專案採用 [AGPL-3.0 授權](https://www.gnu.org/licenses/agpl-3.0.html)，允許自由使用、修改與散布，詳見[服務條款](legal/TERMS_zhHant.md#6-授權條款)。
 - **增強運算服務 (ECS)**：需訂閱並遵守[服務條款](legal/TERMS_zhHant.md#7-訂閱條款)，包含退款政策與使用限制。
-- **字體授權**：本專案使用 [Noto Sans TC 字體](https://fonts.google.com/specimen/Noto+Sans+TC)，更多資訊詳見[服務條款](legal/TERMS_zhHant.md#6-授權條款)。
+- **字體授權**：本專案使用 [Noto Sans TC font](https://fonts.google.com/specimen/Noto+Sans+TC)、[Noto Sans SC font](https://fonts.google.com/specimen/Noto+Sans+SC)、[Noto Sans JP font](https://fonts.google.com/specimen/Noto+Sans+JP)，更多資訊詳見[服務條款](legal/TERMS_zhHant.md#6-授權條款)。
 
 <hr>
 <br>
