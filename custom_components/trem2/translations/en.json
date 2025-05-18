@@ -1,19 +1,57 @@
 {
   "config": {
     "abort": {
-      "already_configured": "Monitoring region or Exptech subscribe plan is already configured."
+      "already_configured": "Taiwan Real-time Earthquake Monitoring is already configured.",
+      "already_in_progress": "Please wait for it to finish before retry for config flow.",
+      "reauth_successful": "Re-authentication was successful.",
+      "reauth_failed": "Re-authentication failed."
     },
     "error": {
-      "already_in_progress": "Please wait for it to finish before retry for config flow.",
+      "invalid_auth": "The account does not exist or the password is invalid.",
+      "cannot_connect": "Unable to connect to the ExpTech server.",
       "unknown": "Unexpected error."
     },
-    "flow_title": "Taiwan Real-time Earthquake Monitoring"
+    "step": {
+      "user": {
+        "title": "ExpTech VIP",
+        "data": {
+          "email": "ExpTech E-mail",
+          "password": "ExpTech Password",
+          "type": "Publisher"
+        },
+        "description": "Go to https://exptech.com.tw/pricing to subscribe\n\nOr press Submit to continue in http mode."
+      },
+      "reauth": {
+        "title": "ExpTech VIP",
+        "data": {
+          "email": "ExpTech E-mail",
+          "password": "ExpTech Password",
+          "type": "Publisher"
+        },
+        "description": "Go to https://exptech.com.tw/pricing to subscribe\n\nOr press Submit to continue in http mode."
+      },
+      "reauth_confirm": {
+        "title": "Re-authentication required",
+        "description": "The ExpTech VIP needs to re-authenticate your account."
+      }
+    }
   },
   "options": {
     "error": {
-      "already_in_progress": "Please wait for it to finish before retry for config flow.",
+      "invalid_auth": "The account does not exist or the password is invalid.",
+      "cannot_connect": "Unable to connect to the ExpTech server.",
       "unknown": "Unexpected error."
     },
-    "flow_title": "Taiwan Real-time Earthquake Monitoring"
+    "step": {
+      "init": {
+        "title": "Configure",
+        "data": {
+          "email": "ExpTech E-mail",
+          "password": "ExpTech Password",
+          "type": "Publisher"
+        },
+        "description": "Go to https://exptech.com.tw/pricing to subscribe\n\nOr press Submit to continue in http mode."
+      }
+    }
   }
 }

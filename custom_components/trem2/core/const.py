@@ -95,3 +95,14 @@ COUNTY_NAME = {
     "TWTTT": "臺東縣",
     "TWYUN": "雲林縣",
 }
+
+PROVIDERS = {
+    "cwa": "中央氣象署 (CWA)",
+    "nied": "日本防災科研 (NIED)",
+    "jma": "日本氣象廳 (JMA)",
+    "kma": "韓國氣象廳 (KMA)",
+    "scdzj": "中國四川省地震局 (SCDZJ)",
+    "fjdzj": "中國福建省地震局 (FJDZJ)",
+    "test": "模擬測試 (TEST)",
+}
+FOOT_NOTE = "實際結果以中央氣象署公佈的內容為準"

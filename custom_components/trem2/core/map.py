@@ -8,7 +8,17 @@ from reportlab.graphics import renderSVG
 import segno
 from svglib.svglib import svg2rlg
 
-from .const import COUNTY_CENTERS, COUNTY_NAME, DEFAULT_COLOR, INTENSITY_COLORS, TAIWAN_CENTER, TZ_TW, TZ_UTC
+from .const import (
+    COUNTY_CENTERS,
+    COUNTY_NAME,
+    DEFAULT_COLOR,
+    FOOT_NOTE,
+    INTENSITY_COLORS,
+    PROVIDERS,
+    TAIWAN_CENTER,
+    TZ_TW,
+    TZ_UTC,
+)
 from .earthquake import intensity_to_text, round_intensity
 
 TW_MAP_SVG = {
@@ -16,7 +26,7 @@ TW_MAP_SVG = {
         <?xml version="1.0" encoding="UTF-8"?>
         <svg width="1000" height="1000" fill="#808080" stroke="#fff" baseProfile="tiny" xmlns="http://www.w3.org/2000/svg">
         <rect x="0" y="0" width="1000" height="1000" fill="#2D2926" opacity="1" />
-    """,
+    """,  # noqa: E501
     "TWKIN": '<path d="m181.2 423.5v0.1l-1.1-0.4-0.3-0.4 0.6-1.2-1.3-0.9-0.2-0.3-0.1-0.1-2.5-1.9-1.8-1.9-2.7 1-1.3 1.6 0.2 0.7-0.1 0.6-0.3 0.2-0.3-0.1-0.4 2.4-5 5.9-11.4-4.1 0.2 1-0.2 1-0.3 0.1 1.1 1.1-0.4 8.2-3.3 2.6 2.5 2.7-1.4-0.6-1.9-0.2-1.7-0.7-0.9-1.5 0.3-0.6 1.6-1.9 0.5-1 0.1-1.4v-1.8l-0.6-3.1-1.2-3-0.2-1.6 1.1-0.6 5.5-2.7 7.2 4.7 5-0.6 0.8-6.3 1.7-3.9 5.3-1.1 5.2 4.7 2 5.3zm0.2 10.5 0.3-2.1h0.3l-0.2 1.7-0.4 0.4zm0.9-5-1-3 0.1-0.7 0.3-0.4 0.8 2.4-0.2 1.7z" id="TWKIN" fill="{TWKIN_COLOR}"></path>',  # noqa: E501
     "TWLIE": '<path d="m181.2 423.5v0.1l-1.1-0.4-0.3-0.4 0.6-1.2-1.3-0.9-0.2-0.3-0.1-0.1-2.5-1.9-1.8-1.9-2.7 1-1.3 1.6 0.2 0.7-0.1 0.6-0.3 0.2-0.3-0.1-0.4 2.4-5 5.9-11.4-4.1 0.2 1-0.2 1-0.3 0.1 1.1 1.1-0.4 8.2-3.3 2.6 2.5 2.7-1.4-0.6-1.9-0.2-1.7-0.7-0.9-1.5 0.3-0.6 1.6-1.9 0.5-1 0.1-1.4v-1.8l-0.6-3.1-1.2-3-0.2-1.6 1.1-0.6 5.5-2.7 7.2 4.7 5-0.6 0.8-6.3 1.7-3.9 5.3-1.1 5.2 4.7 2 5.3zm0.2 10.5 0.3-2.1h0.3l-0.2 1.7-0.4 0.4zm0.9-5-1-3 0.1-0.7 0.3-0.4 0.8 2.4-0.2 1.7z" id="TWLIE" fill="{TWLIE_COLOR}"></path>',  # noqa: E501
     "TWPEN": '<path d="m409.7 611.6 0.9 2.9 -0.4 2.2 -1.4 -1.4 -1.9 -1.3 -2 -0.4 -2.8 1.6 -2.1 0.3 -1 0.5 -0.5 1.1 -0.8 2.9 -0.5 0.9 -3.4 2 -3.4 0.5 -3.5 -1.4 -3.5 -3.5 0.9 -1.8 1.9 2.3 2.3 2.9 0.6 3.1 -0.8 2.6 -2.1 -1.8 -0.7 -1.4 -0.8 -1.1 -1.2 -1 -1.6 -0.4 0.7 v 0.2 l -0.2 0.2 -0.7 0.4 -0.2 -2.9 0.2 -2.9 h 1.3 l 1.5 0.4 5.3 -3.4 3.4 -1.1 -0.9 3.2 -0.4 0.9 2.9 -0.9 2.2 0.3 1.6 -0.2 1.2 -1.9 3.4 6.2 z" id="TWPEN" fill="{TWPEN_COLOR}"></path>',  # noqa: E501
@@ -48,7 +58,7 @@ TW_MAP_SVG = {
     "info": """
         <g id="information" transform="translate(10, 10)" font-family="Noto Sans TC, sans-serif" font-size="16px" fill="#fff" opacity="1">
           <rect width="300" height="390" fill="#2e364f" opacity="0.6" stroke-width="2" />
-          <text x="150" y="50" fill="#f0f0f0" stroke="none" font-size="24px" text-anchor="middle" opacity="1">地震資訊</text>
+          <text x="150" y="50" fill="#f0f0f0" stroke="none" font-size="24px" text-anchor="middle" opacity="1">詳細資訊</text>
           <g transform="translate(20, 80)" stroke="none"><path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
             <text x="30" y="18" fill="#eedaf2" font-size="20px">{eq_id}</text></g>
           <g transform="translate(20, 120)" stroke="none"><path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z" />
@@ -58,7 +68,7 @@ TW_MAP_SVG = {
             <text x="30" y="10"><tspan>發震時間 (UTC+8)</tspan><tspan x="30" dy="20" fill="#eedaf2" font-size="20px">{time}</tspan></text>
           </g>
           <g transform="translate(20, 220)" stroke="none"><path d="M5.41,21L6.12,17H2.12L2.47,15H6.47L7.53,9H3.53L3.88,7H7.88L8.59,3H10.59L9.88,7H15.88L16.59,3H18.59L17.88,7H21.88L21.53,9H17.53L16.47,15H20.47L20.12,17H16.12L15.41,21H13.41L14.12,17H8.12L7.41,21H5.41M9.53,9L8.47,15H14.47L15.53,9H9.53Z" />
-            <text x="30" y="10"><tspan>最大震度</tspan><tspan x="30" dy="20" fill="#eedaf2" font-size="20px">{max}</tspan></text>
+            <text x="30" y="10"><tspan>最大震度</tspan><tspan x="30" dy="20" fill="#eedaf2" font-size="20px">{max_intensity}</tspan></text>
           </g>
           <g transform="translate(20, 270)" stroke="none"><path d="M22 12L20 13L19 14L18 13L17 16L16 13L15 21L14 13L13 15L12 13L11 17L10 13L9 22L8 13L7 19L6 13L5 14L4 13L2 12L4 11L5 10L6 11L7 5L8 11L9 2L10 11L11 7L12 11L13 9L14 11L15 3L16 11L17 8L18 11L19 10L20 11L22 12Z" />
             <text x="30" y="10"><tspan>芮氏規模</tspan><tspan x="30" dy="20" fill="#eedaf2" font-size="20px"><tspan>M</tspan><tspan x="50" font-size="12px">L</tspan><tspan> {mag}</tspan></tspan></text>
@@ -66,7 +76,7 @@ TW_MAP_SVG = {
           <g transform="translate(20, 320)" stroke="none"><path d="M16.59,5.59L18,7L12,13L6,7L7.41,5.59L12,10.17L16.59,5.59M16.59,11.59L18,13L12,19L6,13L7.41,11.59L12,16.17L16.59,11.59Z" />
             <text x="30" y="10"><tspan>震源深度</tspan><tspan x="30" dy="20" fill="#eedaf2" font-size="20px">{depth} 公里</tspan></text>
           </g>
-          <text x="150" y="380" fill="#f0f0f0" stroke="none" font-size="14px" text-anchor="middle" opacity="1">實際結果以中央氣象署公佈的內容為準</text>
+          <text x="150" y="380" fill="#f0f0f0" stroke="none" font-size="14px" text-anchor="middle" opacity="1">{foot_note}</text>
         </g>
     """,  # noqa: E501
     "legend": """
@@ -86,7 +96,7 @@ TW_MAP_SVG = {
     "copyright": """
         <g id="copyright" transform="translate(0 960)" font-family="Noto Sans TC, sans-serif">
           <rect width="100%" height="40" fill="#000"/>
-          <text x="500" y="15" fill="#fff" font-size="12" stroke="none" text-anchor="middle">HA-TREM2 | ©探索科技, ©居智科技</text>
+          <text x="500" y="15" fill="#fff" font-size="12" stroke="none" text-anchor="middle">HA-TREM2 | ©探索科技, ©高家田(jayx1011)</text>
           <text x="500" y="30" fill="#fff" font-size="12" stroke="none" text-anchor="middle">Taiwan Map Data Provided by SimpleMaps</text>
         </g>
     """,  # noqa: E501
@@ -95,11 +105,9 @@ TW_MAP_SVG = {
 
 OFFSHORE_ZONES = {
     "Pacific Ocean": '<rect x="950" y="0" width="50" height="1000" fill="red" opacity="0.3"></rect>',
-    "Philippine Sea": '<rect x="0" y="900" width="1000" height="50" fill="red" opacity="0.3"></rect>',
     "Taiwan Strait": '<rect x="0" y="0" width="50" height="1000" fill="red" opacity="0.3"></rect>',
     "East China Sea": '<rect x="0" y="0" width="1000" height="50" fill="red" opacity="0.3"></rect>',
     "Bashi Channel": '<rect x="900" y="900" width="100" height="100" fill="red" opacity="0.3"></rect>',
-    "South China Sea": '<rect x="0" y="900" width="1000" height="50" fill="red" opacity="0.3"></rect>',
     "Sea": """
         <rect x="25" y="0" width="950" height="25" fill="red" opacity="0.3" stroke="none"/>
         <rect x="0" y="0" width="25" height="935" fill="red" opacity="0.3" stroke="none"/>
@@ -191,20 +199,17 @@ def is_offshore(latlong: tuple[float, float]) -> str | None:
     if is_taiwan_mainland:
         return None  # 臺灣本島
 
-    if lon > 122:
-        return "Pacific Ocean"  # 太平洋
-    if 121 <= lon <= 122 and lat < 21.5:
-        return "Philippine Sea"  # 菲律賓海
-    if lon < 118:
-        return "Taiwan Strait"  # 台灣海峽
-    if lat > 25.5:
-        return "East China Sea"  # 東海
-    if lat < 21.5 and lon < 121:
-        return "South China Sea"  # 南海
-    if 121 <= lon <= 122 and 21.5 <= lat <= 22.5:
-        return "Bashi Channel"  # 巴士海峽
-
-    return "Sea"  # 外海
+    match (lat, lon):
+        case (lat, lon) if lat > 25.5:
+            return "East China Sea"  # 東海
+        case (lat, lon) if lon > 122:
+            return "Pacific Ocean"  # 太平洋
+        case (lat, lon) if lon < 118:
+            return "Taiwan Strait"  # 台灣海峽
+        case (lat, lon) if 121 <= lon <= 122 and 21.5 <= lat <= 22.5:
+            return "Bashi Channel"  # 巴士海峽
+        case _:
+            return "Sea"  # 外海
 
 
 def mag_to_intensity(mag):
@@ -266,31 +271,33 @@ def generate_qr_code(url, bg_svg, scale=9):
     bg_drawing = svg2rlg(bg_svg)
     qr_drawing = svg2rlg(qr_svg)
 
-    # Get the background dimensions
-    bg_width = bg_drawing.width
-    bg_height = bg_drawing.height
+    element = None
+    if bg_drawing and qr_drawing:
+        # Get the background dimensions
+        bg_width = bg_drawing.width
+        bg_height = bg_drawing.height
 
-    # Get the QR Code dimensions
-    qr_width = qr_drawing.width
-    qr_height = qr_drawing.height
+        # Get the QR Code dimensions
+        qr_width = qr_drawing.width
+        qr_height = qr_drawing.height
 
-    # Calculate the position to center the QR Code
-    x_offset = (bg_width - qr_width) / 2
-    y_offset = (bg_height - qr_height) / 2
+        # Calculate the position to center the QR Code
+        x_offset = (bg_width - qr_width) / 2
+        y_offset = (bg_height - qr_height) / 2
 
-    # Set the QR Code position to the center of the background
-    qr_drawing.translate(x_offset, y_offset)
+        # Set the QR Code position to the center of the background
+        qr_drawing.translate(x_offset, y_offset)
 
-    # Marge the QR Code with the background
-    bg_drawing.add(qr_drawing)
+        # Marge the QR Code with the background
+        bg_drawing.add(qr_drawing)
 
-    # Convert the drawing to SVG string
-    qr_data = renderSVG.drawToString(bg_drawing).replace("\n", "").replace("\t", "")
-    qr_svg = ET.fromstring(qr_data)
+        # Convert the drawing to SVG string
+        qr_data = renderSVG.drawToString(bg_drawing).replace("\n", "").replace("\t", "")
+        qr_svg = ET.fromstring(qr_data)
 
-    # Define the namespace for SVG
-    namespaces = {"ns0": "http://www.w3.org/2000/svg"}
-    element = qr_svg.find(".//ns0:g[@id='group']", namespaces=namespaces)
+        # Define the namespace for SVG
+        namespaces = {"ns0": "http://www.w3.org/2000/svg"}
+        element = qr_svg.find(".//ns0:g[@id='group']", namespaces=namespaces)
 
     if element is not None:
         # Remove the namespace from the tag
@@ -390,8 +397,7 @@ def draw(intensitys: dict, eq_data: dict, eq_id="XXXXXXX-X", bg_path=None, url=N
     max_int = intensity_to_text(round_intensity(max_int))
 
     # Add epicenter and earthquake information
-    eq = eq_data.get("eq", {})
-    _draw_epicenter(svg_parts, eq, eq_id, county_name, max_int)
+    _draw_epicenter(svg_parts, eq_data, eq_id, county_name, max_int)
 
     # Add QR code if URL is provided
     _add_qr_code(svg_parts, url, bg_path)
@@ -425,8 +431,10 @@ def _draw_intensitys(svg_parts: list, intensitys: dict):
     return max_county_id, max_intensity
 
 
-def _draw_epicenter(svg_parts: list, eq: dict, eq_id, county_name, max):
+def _draw_epicenter(svg_parts: list, eq_data: dict, eq_id, county_name, max_intensity):
     """Draw the epicenter and earthquake information."""
+    eq: dict = eq_data.get("eq", {})
+
     if eq_id == "XXXXXXX-X":
         eq_id = "震動速報"
         loc_main = "未知區域"
@@ -449,7 +457,7 @@ def _draw_epicenter(svg_parts: list, eq: dict, eq_id, county_name, max):
             epicenter_x, epicenter_y = latlon_to_svg(epi_latlong)
             _draw_cross(svg_parts, epicenter_x, epicenter_y)
 
-        loc_main, loc_spec = _parse_location(eq.get("loc"))
+        loc_main, loc_spec = _parse_location(eq.get("loc"), epi_latlong)
 
     formatted_time = datetime.fromtimestamp(
         round(
@@ -468,19 +476,36 @@ def _draw_epicenter(svg_parts: list, eq: dict, eq_id, county_name, max):
             loc_main=loc_main,
             loc_spec=loc_spec,
             time=formatted_time.strftime("%Y/%m/%d %H:%M:%S"),
-            max=" ".join(
+            max_intensity=" ".join(
                 map(
                     str,
                     (
                         county_name,
-                        max,
+                        max_intensity,
                     ),
                 )
             ),
             mag=eq.get("mag", "---"),
             depth=eq.get("depth", "---"),
+            foot_note=_provider_info(
+                eq_data.get(
+                    "author",
+                    eq.get(
+                        "author",
+                        "ExpTech",
+                    ),
+                )
+            ),
         )
     )
+
+
+def _provider_info(author: str) -> str:
+    """Get the provider information."""
+    if author == "cwa":
+        return FOOT_NOTE
+
+    return f"Provider: {PROVIDERS.get(author, 'Unknown')}"
 
 
 def _draw_cross(svg_parts: list, epicenter_x, epicenter_y):
@@ -496,7 +521,7 @@ def _draw_cross(svg_parts: list, epicenter_x, epicenter_y):
     svg_parts.append(f'<circle style="fill:#2e364f;fill-opacity:0.5" cx="{epicenter_x}" cy="{epicenter_y}" r="80" />')
 
 
-def _parse_location(loc: str) -> tuple[str, str]:
+def _parse_location(loc: str | None, epi_latlong: tuple | None = None) -> tuple[str, str]:
     """Parse location into main and specific parts."""
     if loc is None:
         loc_main = "震源調查中"
@@ -504,9 +529,37 @@ def _parse_location(loc: str) -> tuple[str, str]:
     else:
         loc_parts = loc.split("(")
         loc_main = loc_parts[0].strip() if len(loc_parts) > 0 else loc
-        loc_spec = loc_parts[1].strip(")") if len(loc_parts) > 1 else "未知區域"
+        loc_spec = loc_parts[1].strip(")") if len(loc_parts) > 1 else _format_latlong(epi_latlong)
 
     return loc_main, loc_spec
+
+
+def _format_latlong(latlong: tuple | None = None):
+    if latlong is None:
+        return "未知區域"
+
+    lat, lon = latlong
+
+    # lat
+    lat_d, lat_m, lat_s = _decimal_to_dms(lat)
+    lat_hemisphere = "N" if lat >= 0 else "S"
+
+    # long
+    lon_d, lon_m, lon_s = _decimal_to_dms(lon)
+    lon_hemisphere = "E" if lon >= 0 else "W"
+
+    lat_str = f"{abs(lat_d):02d}°{abs(lat_m):02d}'{abs(lat_s):04.1f}\"{lat_hemisphere}"
+    lon_str = f"{abs(lon_d):03d}°{abs(lon_m):02d}'{abs(lon_s):04.1f}\"{lon_hemisphere}"
+
+    return f"{lat_str} {lon_str}"
+
+
+def _decimal_to_dms(degree):
+    d = int(degree)
+    m_float = abs(degree - d) * 60
+    m = int(m_float)
+    s = (m_float - m) * 60
+    return d, m, s
 
 
 def _add_qr_code(svg_parts: list, url, bg_path):

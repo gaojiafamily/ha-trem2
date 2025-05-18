@@ -32,7 +32,7 @@ def publish_earthquake_data() -> int:
     state.update_eq_id(state.eq_id + 1)
     earthquake_data = {
         "id": state.eq_id,
-        "author": "測試資料",
+        "author": "test",
         "serial": 1,
         "final": 0,
         "eq": {

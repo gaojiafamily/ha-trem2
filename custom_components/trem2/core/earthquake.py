@@ -37,20 +37,21 @@ def calculate_intensity(magnitude: float, hypocenter_distance: float, depth: int
 
 def round_intensity(intensity: float) -> int:
     """Round the intensity to the nearest whole number based on specific thresholds."""
-    if intensity <= 0:
-        return 0
-    if intensity < 4.5:
-        return round(intensity)
-    if intensity < 5:
-        return 5
-    if intensity < 5.5:
-        return 6
-    if intensity < 6:
-        return 7
-    if intensity < 6.5:
-        return 8
-
-    return 9
+    match intensity:
+        case i if i <= 0:
+            return 0
+        case i if i < 4.5:
+            return round(i)
+        case i if i < 5:
+            return 5
+        case i if i < 5.5:
+            return 6
+        case i if i < 6:
+            return 7
+        case i if i < 6.5:
+            return 8
+        case _:
+            return 9
 
 
 def intensity_to_text(intensity) -> str:
@@ -58,26 +59,19 @@ def intensity_to_text(intensity) -> str:
     if isinstance(intensity, float):
         intensity = round_intensity(intensity)
 
-    if intensity == 0:
-        return "0級"
-    if intensity == 1:
-        return "1級"
-    if intensity == 2:
-        return "2級"
-    if intensity == 3:
-        return "3級"
-    if intensity == 4:
-        return "4級"
-    if intensity == 5:
-        return "5弱"
-    if intensity == 6:
-        return "5強"
-    if intensity == 7:
-        return "6弱"
-    if intensity == 8:
-        return "6強"
-
-    return "7級"
+    match intensity:
+        case 0 | 1 | 2 | 3 | 4:
+            return f"{intensity}級"
+        case 5:
+            return "5弱"
+        case 6:
+            return "5強"
+        case 7:
+            return "6弱"
+        case 8:
+            return "6強"
+        case _:
+            return "7級"
 
 
 def get_calculate_intensity(eq_data: dict) -> dict:

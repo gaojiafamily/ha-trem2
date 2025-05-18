@@ -1,5 +1,5 @@
 constants:
-  simulator_data: &simulator_data '[{"author":"cwa","id":"1140889","serial":4,"status":0,"final":0,"eq":{"time":1744245063000,"lon":121.29,"lat":23.43,"depth":23.2,"mag":4.3,"loc":"花蓮縣政府南南西方 70.3 公里 (位於花蓮縣卓溪鄉)","max":3},"time":1744245063000}]'
+  simulator_data: &simulator_data '{"author":"cwa","id":"1140889","serial":4,"status":0,"final":0,"eq":{"time":1744245063000,"lon":121.29,"lat":23.43,"depth":23.2,"mag":4.3,"loc":"花蓮縣政府南南西方 70.3 公里 (位於花蓮縣卓溪鄉)","max":3},"time":1744245063000}'
 
 save2file:
   name: "Save Image"
@@ -9,7 +9,7 @@ save2file:
       required: true
       name: "Entity"
       description: "Identifier of the image entity."
-      example: "image.trem_monitoring"
+      example: "image.trem2_monitoring"
       selector:
         entity:
           integration: trem2
@@ -25,6 +25,15 @@ simulator:
   name: "Simulating Earthquake"
   description: "Simulate an earthquake event."
   fields:
+    entity_id:
+      required: true
+      name: "Entity"
+      description: "Identifier of the sensor entity, Do not select diagnostic sensor."
+      example: "sensor.trem2_notification"
+      selector:
+        entity:
+          integration: trem2
+          domain: sensor
     data:
       name: "Earthquake Data"
       description: "Please refer to the example data, To stop simulation, `leave empty` or un-check."
@@ -36,7 +45,16 @@ set_http_node:
   name: "Set Http Node"
   description: "Set the http node specified."
   fields:
-    api_url:
+    entity_id:
+      required: true
+      name: "Entity"
+      description: "Identifier of the sensor entity."
+      example: "sensor.trem2_notification"
+      selector:
+        entity:
+          integration: trem2
+          domain: sensor
+    url:
       name: "Server URL"
       description: "Set specified server URL by the user."
       example: "http://127.0.0.1:8000/api/v2/eq/eew"
@@ -59,7 +77,16 @@ set_ws_node:
   name: "Set WebSocket Node"
   description: "Set the WebSocket node specified."
   fields:
-    api_url:
+    entity_id:
+      required: true
+      name: "Entity"
+      description: "Identifier of the binary sensor entity."
+      example: "binary_sensor.trem2_intensity"
+      selector:
+        entity:
+          integration: trem2
+          domain: binary_sensor
+    url:
       name: "Server URL"
       description: "Set specified server URL by the user."
       example: "wss://127.0.0.1:8000/websocket"
@@ -71,7 +98,7 @@ set_ws_node:
       selector:
         select:
           options:
-            - taipei_1
-            - pingtung_1
-            - taipei_2
-            - pingtung_2
+            - ws_taipei_1
+            - ws_pingtung_1
+            - ws_taipei_2
+            - ws_pingtung_2
