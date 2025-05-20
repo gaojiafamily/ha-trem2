@@ -21,6 +21,7 @@ from aiohttp import (
 from aiohttp.hdrs import USER_AGENT
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 
 from ..const import HA_USER_AGENT, WS_URLS
 
@@ -157,16 +158,20 @@ class ExpTechWSClient:
             raise RuntimeError("WS Client base URL is not set")
 
         # Establishing a connection
-        self.conf.params = params or {}
-        headers = {
-            USER_AGENT: HA_USER_AGENT,
-        }
-        self.state.conn = await self.session.ws_connect(
-            self.base_url,
-            headers=headers,
-            autoclose=False,
-            autoping=False,
-        )
+        try:
+            self.conf.params = params or {}
+            headers = {
+                USER_AGENT: HA_USER_AGENT,
+            }
+            self.state.conn = await self.session.ws_connect(
+                self.base_url,
+                headers=headers,
+                autoclose=False,
+                autoping=False,
+            )
+        except WSServerHandshakeError as err:
+            self.logger.error("WebSocket connection failed: %s", err)
+            raise ConfigEntryNotReady from err
 
         # Initialize background tasks and verify
         self.initialize_background_tasks()
@@ -210,10 +215,6 @@ class ExpTechWSClient:
                 if retries >= max_retries:
                     self.logger.error("Max retries reached, WebSocket connection failures")
                     break
-            except WSServerHandshakeError:
-                self.logger.error("WebSocket handshake error")
-                self.state.message = None
-                break
 
         self.state.is_running = False
 

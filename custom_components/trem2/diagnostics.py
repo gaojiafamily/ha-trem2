@@ -48,6 +48,8 @@ def _async_get_diagnostics(hass: HomeAssistant, config_entry: ConfigEntry):
         diag_data["title"] = config_entry.title
         diag_data["options"] = async_redact_data(config_entry.options, TO_REDACT)
         diag_data["logs"] = [entry.to_dict() for key, entry in records if DOMAIN in str(key)]
+        diag_data["use_http_fallback"] = update_coordinator.state.use_http_fallback
+        diag_data["last_exception"] = repr(update_coordinator.last_exception)
         diag_data["server_status"] = update_coordinator.server_status() if update_coordinator else None
         diag_data["eq"] = update_coordinator.state.cache_eew if update_coordinator else None
         diag_data["report"] = update_coordinator.state.cache_report if update_coordinator else None

@@ -6,12 +6,11 @@ from datetime import datetime, timedelta
 import json
 import logging
 
-from aiohttp import WSServerHandshakeError
 from dataclasses import dataclass
 
 from homeassistant.const import CONF_API_TOKEN, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import EventOrigin, HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -48,7 +47,6 @@ class Trem2State:
     api_node: str | None = None
     retry_backoff = 1
     use_http_fallback = False
-    reinitialize = False
     update_interval = timedelta(seconds=5)
 
     # Sensor state
@@ -130,12 +128,6 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             k: get_provider_option(k, v) for k, v in config_options.items() if k in PARAMS_OPTIONS and v
         }
 
-        # Re-initialize
-        http_exclude = self.http_client.unavailables
-        ws_exclude = self.ws_client.unavailables
-        if self.state.reinitialize:
-            await self._initialize(http_exclude, ws_exclude)
-
         # Setup WebSocket or HTTP fetch method
         _api_token = config_options.get(CONF_API_TOKEN)
         if _api_token:
@@ -145,13 +137,8 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 await self.ws_client.connect()
                 self.state.update_interval = self.conf.fast_interval
                 self.state.api_node = self.ws_client.api_node
-            except RuntimeError:
-                self.state.reinitialize = True
-                return
-            except WSServerHandshakeError as ex:
-                if ex.status == 502:
-                    self.state.reinitialize = True
-                    return
+            except RuntimeError as ex:
+                raise ConfigEntryNotReady(f"{ex!r}") from ex
         else:
             self.http_client.params = self.conf.params
             report_data = await self.http_client.fetch_report()
@@ -161,9 +148,8 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
         # If max retries, raise connection failures
         self.update_interval = self.state.update_interval
-        unavailable = ws_exclude if _api_token else http_exclude
+        unavailable = self.ws_client.unavailables if _api_token else self.http_client.unavailables
         if self.state.api_node:
-            self.state.reinitialize = False
             self.state.retry_backoff = 1
             self.server_status_event(
                 event_fire=True,
@@ -176,7 +162,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 "No available nodes (%s), the service will be suspended",
                 ",".join(unavailable),
             )
-            raise ConnectionRefusedError("ExpTech server connection failures")
+            raise ConfigEntryNotReady("ExpTech server connection failures")
 
     async def async_register_shutdown(self):
         """Register shutdown on HomeAssistant stop."""
@@ -199,10 +185,6 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         resp = None
         use_http_fetch = True
 
-        # re-initialize client if needed
-        if self.state.reinitialize:
-            await self._async_setup()
-
         # Fetch data from WebSocket
         if self.ws_client.state.is_running and self.ws_client.state.subscrib_service:
             resp = await self._websocket_update_data(self.ws_client.state.subscrib_service)
@@ -213,7 +195,11 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             try:
                 resp = await self.http_client.fetch_eew()
             except RuntimeError:
-                self.state.retry_backoff = min(self.state.retry_backoff * 2, 256)
+                self.state.retry_backoff += 1
+
+        # Reset retry backoff if data is received
+        if resp:
+            self.state.retry_backoff = 1
 
         # Storing earthquake and report data
         self.state.earthquake = await self._load_eew_data(
@@ -228,14 +214,15 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         # Retry backoff if no data
         match self.state.retry_backoff:
             case retries if retries >= 5:
-                self.state.reinitialize = True
+                raise ConfigEntryNotReady("The ExpTech server is not responding")
             case retries if retries > 1:
                 new_interval = min(
                     self.conf.base_interval * self.state.retry_backoff,
                     self.conf.max_interval,
                 )
                 self.update_interval = new_interval
-                raise UpdateFailed(f"Update failed, next attempt in {new_interval.total_seconds()} seconds")
+                _LOGGER.error(f"Update failed, next attempt in {new_interval.total_seconds()} seconds")
+                raise UpdateFailed()
 
     async def _websocket_update_data(self, subscrib_service: list):
         """Perform WebSocket update data."""
@@ -272,8 +259,8 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 node=self.http_client.api_node,
                 unavailable=self.ws_client.api_node,
             )
-            self.state.retry_backoff = min(self.state.retry_backoff * 2, 256)
-            _LOGGER.info("WebSocket error: %s, falling back to HTTP", str(ex))
+            self.state.retry_backoff += 1
+            _LOGGER.warning("WebSocket error: %s, falling back to HTTP", str(ex))
 
     async def _handle(self, resp: dict | None) -> list:
         """Handle incoming WebSocket messages based on type."""

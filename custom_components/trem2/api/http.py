@@ -74,13 +74,7 @@ class ExpTechHTTPClient:
                 headers=headers,
                 timeout=REQUEST_TIMEOUT,
             )
-        except (ClientConnectorError, TimeoutError) as ex:
-            self.logger.error(
-                "Failed fetching data from HTTP API(%s), %s",
-                self.api_node,
-                str(ex),
-            )
-        except RuntimeError as ex:
+        except (ClientConnectorError, TimeoutError, RuntimeError) as ex:
             self.logger.error(
                 "Failed fetching data from HTTP API(%s), %s",
                 self.api_node,
