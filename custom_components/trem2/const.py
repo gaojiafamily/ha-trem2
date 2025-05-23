@@ -19,6 +19,7 @@ PLATFORMS = [
 ]
 
 # Config
+CONF_AGREE = "agree_tos_20250523"
 CONF_PASS = "pass"
 CONF_PROVIDER = "type"
 PROVIDER_OPTIONS = [

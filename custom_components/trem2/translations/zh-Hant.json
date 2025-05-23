@@ -16,13 +16,13 @@
         "data": {
           "type": "\u901f\u5831\u4f86\u6e90"
         },
-        "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP\n\n\u6216\u6309\u4e0b\u50b3\u9001\u4ee5http mode\u7e7c\u7e8c"
+        "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP\n\u6216\u6309\u4e0b\u50b3\u9001\u4ee5http mode\u7e7c\u7e8c\n\n Terms of Service: https://github.com/gaojiafamily/ha-trem2/blob/main/legal/TERMS_zhHant.md"
       },
       "reauth": {
         "data": {
           "type": "\u901f\u5831\u4f86\u6e90"
         },
-        "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP\n\n\u6216\u6309\u4e0b\u50b3\u9001\u4ee5http mode\u7e7c\u7e8c"
+        "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP\n\u6216\u6309\u4e0b\u50b3\u9001\u4ee5http mode\u7e7c\u7e8c\n\n Terms of Service: https://github.com/gaojiafamily/ha-trem2/blob/main/legal/TERMS_zhHant.md"
       },
       "reauth_confirm": {
         "title": "\u9700\u8981\u91cd\u65b0\u8a8d\u8b49",
@@ -41,7 +41,7 @@
         "data": {
           "type": "\u901f\u5831\u4f86\u6e90"
         },
-        "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP\n\n\u6216\u6309\u4e0b\u50b3\u9001\u4ee5http mode\u7e7c\u7e8c"
+        "description": "\u524d\u5f80 https://exptech.com.tw/pricing \u8a02\u95b1 ExpTech VIP\n\u6216\u6309\u4e0b\u50b3\u9001\u4ee5http mode\u7e7c\u7e8c\n\n Terms of Service: https://github.com/gaojiafamily/ha-trem2/blob/main/legal/TERMS_zhHant.md"
       }
     }
   }

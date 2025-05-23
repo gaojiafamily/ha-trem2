@@ -32,6 +32,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CLIENT_NAME,
+    CONF_AGREE,
     CONF_PASS,
     CONF_PROVIDER,
     DOMAIN,
@@ -69,6 +70,7 @@ class TREM2FlowHandler(ConfigFlow, domain=DOMAIN):
                         vol.Optional(CONF_EMAIL): str,
                         vol.Optional(CONF_PASSWORD): str,
                         vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
+                        vol.Required(CONF_AGREE): bool,
                     }
                 ),
             )
@@ -121,6 +123,7 @@ class TREM2FlowHandler(ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_EMAIL): str,
                     vol.Required(CONF_PASSWORD): str,
                     vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
+                    vol.Required(CONF_AGREE): bool,
                 }
             ),
             errors=error,
@@ -151,6 +154,7 @@ class TREM2FlowHandler(ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_PROVIDER, default=user_input.get(CONF_PROVIDER, "")): vol.In(
                         [x[0] for x in PROVIDER_OPTIONS]
                     ),
+                    vol.Required(CONF_AGREE): bool,
                 }
             ),
             errors={"base": result.get("error", "unknown")},
@@ -177,6 +181,7 @@ class OptionsFlowHandler(OptionsFlow):
                             vol.Optional(CONF_EMAIL): str,
                             vol.Optional(CONF_PASSWORD): str,
                             vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
+                            vol.Required(CONF_AGREE): bool,
                         }
                     ),
                     self.config_entry.options,
@@ -215,6 +220,7 @@ class OptionsFlowHandler(OptionsFlow):
                     vol.Required(CONF_PROVIDER, default=user_input.get(CONF_PROVIDER, "")): vol.In(
                         [x[0] for x in PROVIDER_OPTIONS]
                     ),
+                    vol.Required(CONF_AGREE): bool,
                 }
             ),
             errors={"base": result.get("error", "unknown")},

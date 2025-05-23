@@ -17,18 +17,20 @@
         "data": {
           "email": "ExpTech E-mail",
           "password": "ExpTech Password",
-          "type": "Publisher"
+          "type": "Publisher",
+          "agree_tos_20250523": "I agree to the Terms of Service."
         },
-        "description": "Go to https://exptech.com.tw/pricing to subscribe\n\nOr press Submit to continue in http mode."
+        "description": "Go to https://exptech.com.tw/pricing to subscribe\nOr press Submit to continue in http mode.\n\n Terms of Service: https://github.com/gaojiafamily/ha-trem2/blob/main/legal/TERMS_zhHant.md"
       },
       "reauth": {
         "title": "ExpTech VIP",
         "data": {
           "email": "ExpTech E-mail",
           "password": "ExpTech Password",
-          "type": "Publisher"
+          "type": "Publisher",
+          "agree_tos_20250523": "I agree to the Terms of Service."
         },
-        "description": "Go to https://exptech.com.tw/pricing to subscribe\n\nOr press Submit to continue in http mode."
+        "description": "Go to https://exptech.com.tw/pricing to subscribe\nOr press Submit to continue in http mode.\n\n Terms of Service: https://github.com/gaojiafamily/ha-trem2/blob/main/legal/TERMS_zhHant.md"
       },
       "reauth_confirm": {
         "title": "Re-authentication required",
@@ -48,9 +50,10 @@
         "data": {
           "email": "ExpTech E-mail",
           "password": "ExpTech Password",
-          "type": "Publisher"
+          "type": "Publisher",
+          "agree_tos_20250523": "I agree to the Terms of Service."
         },
-        "description": "Go to https://exptech.com.tw/pricing to subscribe\n\nOr press Submit to continue in http mode."
+        "description": "Go to https://exptech.com.tw/pricing to subscribe\nOr press Submit to continue in http mode.\n\n Terms of Service: https://github.com/gaojiafamily/ha-trem2/blob/main/legal/TERMS_zhHant.md"
       }
     }
   }

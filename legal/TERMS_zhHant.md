@@ -1,6 +1,6 @@
 # 服務條款（Terms of Use）
 
-最後更新：2025-04-20
+最後更新：2025-05-23
 
 ## 1. 整合性質說明
 本整合為 ExpTech API 之非官方客戶端，所有地震資訊來源依據：
@@ -45,7 +45,7 @@ ha-trem2 及其相關服務的所有權利、所有權與智慧財產權，均�
   - 詳細規範請見 [AGPL-3.0 正式條款](https://www.gnu.org/licenses/agpl-3.0.html)
 - NotoSans 字體授權：
   - **署名要求**:
-    - Noto Sans TC/SC/JP 字體由 Google 及其他貢獻者開發。更多資訊請參閱 [Google Fonts](https://fonts.google.com)
+    - Noto Sans CJK 字體由 Google 及其他貢獻者開發。更多資訊請參閱 [Google Fonts](https://fonts.google.com)
   - **使用方式**:
     - 字體文件將複製至使用者的字體目錄
   - **授權許可範圍**:
@@ -61,7 +61,7 @@ ha-trem2 及其相關服務的所有權利、所有權與智慧財產權，均�
     - 修改後的衍生作品必須以相同授權條款釋出
 
 > [!IMPORTANT]
-> 本存儲庫所附 Noto Sans TC/SC/JP 字體僅限本專案使用，外部使用請遵守 [SIL Open Font License](https://scripts.sil.org/OFL)。
+> 本存儲庫所附 Noto Sans CJK 字體僅限本專案使用，外部使用請遵守 [SIL Open Font License](https://scripts.sil.org/OFL)。
 
 ## 7. 訂閱條款
 
@@ -109,7 +109,8 @@ ha-trem2 及其相關服務的所有權利、所有權與智慧財產權，均�
 
 ## 11. 修訂紀錄
 1. 民國 114 年 04 月 19 日初次頒布並實施。
-2. 民國 114 年 04 月 20 日字詞修正及連結更新
+2. 民國 114 年 04 月 20 日字詞修正及連結更新。
+3. 民國 114 年 05 月 23 日變更Noto Sans授權條款。
 
 > [!TIP]
 > 為了您的權益，建議您經常到本儲存庫確認並檢視，重大變更將以公告方式通知，持續使用視為接受新條款。

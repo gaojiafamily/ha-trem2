@@ -10,8 +10,10 @@ import subprocess
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_TOKEN, CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError
 
 from .const import (
+    CONF_AGREE,
     DEFAULT_NAME,
     DOMAIN,
     PLATFORMS,
@@ -48,6 +50,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         UPDATE_LISTENER: update_listener,
         "platforms": PLATFORMS.copy(),
     }
+
+    # Check Terms of Service acceptance
+    if not config_entry.options.get(CONF_AGREE, False):
+        raise ConfigEntryError("You must review the latest and accept the Terms of Service to use this integration.")
 
     # Set up the platforms
     platforms: list = hass.data[DOMAIN][config_entry.entry_id]["platforms"]
