@@ -1,7 +1,7 @@
 """Calculate Earthquake for Taiwan Real-time Earthquake Monitoring integration."""
 
 import math
-from math import atan2, cos, radians, sin, sqrt
+from math import atan2, ceil, cos, radians, sin, sqrt
 
 from .const import COUNTY_CENTERS, COUNTY_SITE_VALUES, EARTH_RADIUS, TAIWAN_CENTER
 
@@ -41,7 +41,7 @@ def round_intensity(intensity: float) -> int:
         case i if i <= 0:
             return 0
         case i if i < 4.5:
-            return round(i)
+            return ceil(i)
         case i if i < 5:
             return 5
         case i if i < 5.5:

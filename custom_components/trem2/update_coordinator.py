@@ -198,7 +198,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 self.state.retry_backoff += 1
 
         # Reset retry backoff if data is received
-        if resp:
+        if resp is not None:
             self.state.retry_backoff = 1
 
         # Storing earthquake and report data

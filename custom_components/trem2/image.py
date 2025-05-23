@@ -82,6 +82,7 @@ class ImageStore:
     cached_image: bytes | None = None
     attributes = {}
     attr_value = {}
+    intensitys = {}
 
 
 class MonitoringImage(ImageEntity):
@@ -197,27 +198,21 @@ class MonitoringImage(ImageEntity):
                 return
 
             # Calculate the intensity
-            if "list" in eq_data:
-                intensitys = await self.get_int_data(eq_data["list"])
-                self.image_store.attr_value = {
-                    ATTR_REPORT_IMG_URL: f"{REPORT_IMG_URL}/{eq_data['id']}.jpg",
-                }
-            if "eq" in eq_data:
-                intensitys = get_calculate_intensity(
-                    eq_data.get(
-                        "eq",
-                        await self.get_int_data(),
+            match eq_data:
+                case {"list": list_data}:
+                    self.image_store.intensitys = await self.get_int_data(list_data)
+                    self.image_store.attr_value = {
+                        ATTR_REPORT_IMG_URL: f"{REPORT_IMG_URL}/{eq_data['id']}.jpg",
+                    }
+                case {"eq": eq_info}:
+                    self.image_store.intensitys = get_calculate_intensity(
+                        eq_info or await self.get_int_data(),
                     )
-                )
-
-                # Write the attributes with the intensity values greater than 0
-                self.image_store.attr_value = {
-                    ATTR_COUNTY.get(k, k): intensity_to_text(
-                        v,
-                    )
-                    for k, v in intensitys.items()
-                    if round_intensity(v) > 0
-                }
+                    self.image_store.attr_value = {
+                        ATTR_COUNTY.get(k, k): intensity_to_text(v)
+                        for k, v in self.image_store.intensitys.items()
+                        if round_intensity(v) > 0
+                    }
 
             # QR Code data
             assets_path = f"custom_components/{DOMAIN}/assets"
@@ -229,7 +224,7 @@ class MonitoringImage(ImageEntity):
 
             # Draw the isoseismal map
             svg_cont = draw_isoseismal_map(
-                intensitys,
+                self.image_store.intensitys,
                 eq_data,
                 eq_id,
                 bg_path,

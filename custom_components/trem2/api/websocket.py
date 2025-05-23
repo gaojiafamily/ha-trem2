@@ -170,7 +170,6 @@ class ExpTechWSClient:
                 autoping=False,
             )
         except WSServerHandshakeError as err:
-            self.logger.error("WebSocket connection failed: %s", err)
             raise ConfigEntryNotReady from err
 
         # Initialize background tasks and verify
@@ -379,7 +378,7 @@ class ExpTechWSClient:
                 return
 
             if exc:
-                self.logger.error("Task failed: %s", exc, exc_info=exc)
+                self.logger.error("Task failed: %s", repr(exc))
 
         # Create and manage the listener task
         if self.state.hass:
