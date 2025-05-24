@@ -7,7 +7,7 @@ import dataclasses
 import logging
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import voluptuous as vol
 
 from pyvips import Image
@@ -30,12 +30,13 @@ from .const import (
     MANUFACTURER,
     OFFICIAL_URL,
     REPORT_IMG_URL,
-    UPDATE_COORDINATOR,
     __version__,
 )
 from .core.earthquake import get_calculate_intensity, intensity_to_text, round_intensity
 from .core.map import draw as draw_isoseismal_map
-from .update_coordinator import Trem2UpdateCoordinator
+
+if TYPE_CHECKING:
+    from .data_classes import Trem2RuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,27 +44,32 @@ IMAGE_ENTITYS = [
     ImageEntityDescription(key="monitoring"),
 ]
 
+type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: Trem2ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the image entity from a config entry."""
-    domain_data: dict = hass.data[DOMAIN][config_entry.entry_id]
-    coordinator: Trem2UpdateCoordinator = domain_data[UPDATE_COORDINATOR]
-
     # Create the image entity
     entities = []
     for entity in IMAGE_ENTITYS:
         if entity.key == "monitoring":
-            entities.append(MonitoringImage(config_entry, coordinator, entity, hass))
+            entities.append(
+                MonitoringImage(
+                    config_entry,
+                    entity,
+                    hass,
+                )
+            )
     async_add_entities(entities, update_before_add=True)
 
     # Register services for the binary sensor
     platform = async_get_current_platform()
-    key = f"{DOMAIN}_save2file_registered"
-    if not hass.data[DOMAIN].get(key):
+    key = f"{config_entry.domain}_save2file_registered"
+    if not hass.data[config_entry.domain].get(key):
         platform.async_register_entity_service(
             "save2file",
             {
@@ -71,7 +77,7 @@ async def async_setup_entry(
             },
             "async_handle_save_image",
         )
-        hass.data[DOMAIN][key] = True
+        hass.data[config_entry.domain][key] = True
 
 
 @dataclasses.dataclass
@@ -90,26 +96,23 @@ class MonitoringImage(ImageEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
-        coordinator: Trem2UpdateCoordinator,
+        config_entry: Trem2ConfigEntry,
         description: ImageEntityDescription,
         hass: HomeAssistant,
     ) -> None:
         """Initialize the image entity."""
         super().__init__(hass)
 
-        self._coordinator = coordinator
-        self._hass = hass
-
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, config_entry.options.get(CONF_EMAIL, "user"))},
+            identifiers={(config_entry.domain, config_entry.options.get(CONF_EMAIL, "user"))},
             name=config_entry.options.get(CONF_EMAIL, config_entry.title),
             manufacturer=MANUFACTURER,
             model="ExpTechTW TREM",
             sw_version=__version__,
         )
-        self.entity_description = description
 
+        self.config_entry = config_entry
+        self.entity_description = description
         self.image_store = ImageStore()
 
     async def async_added_to_hass(self) -> None:
@@ -119,7 +122,7 @@ class MonitoringImage(ImageEntity):
             self.hass.async_create_task(self._update_callback())
 
         self.async_on_remove(
-            self._coordinator.async_add_listener(
+            self.config_entry.runtime_data.coordinator.async_add_listener(
                 _schedule_update_callback,
             )
         )
@@ -131,7 +134,7 @@ class MonitoringImage(ImageEntity):
     @property
     def available(self):
         """Return True if entity is available."""
-        return self._coordinator.last_update_success
+        return self.config_entry.runtime_data.coordinator.last_update_success
 
     @property
     def content_type(self):
@@ -141,7 +144,7 @@ class MonitoringImage(ImageEntity):
     @property
     def name(self):
         """Return the name of the image."""
-        return f"{DOMAIN.upper()} {self.entity_description.key.capitalize()}"
+        return f"{self.config_entry.domain.upper()} {self.entity_description.key.capitalize()}"
 
     @property
     def unique_id(self):
@@ -167,7 +170,7 @@ class MonitoringImage(ImageEntity):
 
     async def _update_callback(self):
         """Handle updated data from the coordinator."""
-        if not self._coordinator.last_update_success:
+        if not self.config_entry.runtime_data.coordinator.last_update_success:
             return
 
         # Get the latest earthquake data
@@ -265,8 +268,8 @@ class MonitoringImage(ImageEntity):
 
     async def get_eew_data(self) -> dict:
         """Get the report or latest notification data."""
-        fetch_eew = self._coordinator.state.earthquake
-        fetch_report = self._coordinator.state.report
+        fetch_eew = self.config_entry.runtime_data.coordinator.state.earthquake
+        fetch_report = self.config_entry.runtime_data.coordinator.state.report
 
         # Get the latest earthquake data
         if isinstance(fetch_eew, list) and len(fetch_eew) > 0:
@@ -300,7 +303,7 @@ class MonitoringImage(ImageEntity):
         int_list = {}
 
         if intensitys is None:
-            int_list = self._coordinator.state.intensity
+            int_list = self.config_entry.runtime_data.coordinator.state.intensity
         else:
             county_list = {v: k for k, v in ATTR_COUNTY.items()}
             for county, detail in intensitys.items():

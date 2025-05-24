@@ -190,10 +190,6 @@ NOTIFICATION_ATTR = [
 ]
 MANUFACTURER = "高家田 (jayx1011)"
 
-# Coordinator
-UPDATE_COORDINATOR = "coordinator"
-UPDATE_LISTENER = "update_listener"
-
 # Stored
 STORAGE_EEW = f"{DOMAIN}/recent_data.json"
 STORAGE_REPORT = f"{DOMAIN}/report.json"

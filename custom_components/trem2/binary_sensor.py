@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import voluptuous as vol
+
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -27,11 +28,14 @@ from .const import (
     INT_DEFAULT_ICON,
     INT_TRIGGER_ICON,
     MANUFACTURER,
-    UPDATE_COORDINATOR,
     ZIP3_TOWN,
     __version__,
 )
-from .update_coordinator import Trem2UpdateCoordinator
+
+if TYPE_CHECKING:
+    from .data_classes import Trem2RuntimeData
+    from .update_coordinator import Trem2UpdateCoordinator
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,21 +48,29 @@ SENSOR_ENTITYS = [
     ),
 ]
 
+type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: Trem2ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the TREM binary sensor from config."""
-    domain_data: dict = hass.data[DOMAIN][config_entry.entry_id]
-    coordinator: Trem2UpdateCoordinator = domain_data[UPDATE_COORDINATOR]
+    update_coordinator: Trem2UpdateCoordinator = config_entry.runtime_data.coordinator
 
     # Create the binary sensor entity
     entities = []
     for entity in SENSOR_ENTITYS:
         if entity.key == "intensity":
-            entities.append(IntensityBinarySensor(config_entry, coordinator, entity, hass))
+            entities.append(
+                IntensityBinarySensor(
+                    config_entry,
+                    update_coordinator,
+                    entity,
+                    hass,
+                )
+            )
     async_add_entities(entities, update_before_add=True)
 
     # Register services for the binary sensor
@@ -81,7 +93,7 @@ class IntensityBinarySensor(BinarySensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
+        config_entry: Trem2ConfigEntry,
         coordinator: Trem2UpdateCoordinator,
         description: BinarySensorEntityDescription,
         hass: HomeAssistant,
@@ -200,10 +212,10 @@ class IntensityBinarySensor(BinarySensorEntity):
         if api_node is None and base_url is None:
             raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`")
 
-        if not self._coordinator.ws_client.state.conn:
+        if not self._coordinator.client.websocket.state.conn:
             raise HomeAssistantError("WebSocket is unavailable.")
 
-        self._coordinator.ws_client.initialize_route(
+        self._coordinator.client.websocket.initialize_route(
             action="service",
             api_node=api_node,
             base_url=base_url,

@@ -7,10 +7,12 @@ import logging
 from pathlib import Path
 import subprocess
 
+
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_TOKEN, CONF_NAME
+from homeassistant.const import CONF_API_TOKEN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
+from homeassistant.helpers.storage import Store
 
 from .const import (
     CONF_AGREE,
@@ -18,56 +20,65 @@ from .const import (
     DOMAIN,
     PLATFORMS,
     STARTUP,
-    UPDATE_COORDINATOR,
-    UPDATE_LISTENER,
+    STORAGE_EEW,
+    STORAGE_REPORT,
 )
-from .update_coordinator import Trem2UpdateCoordinator
+from .data_classes import Trem2RuntimeData
 from .services import async_register_services
+from .update_coordinator import Trem2UpdateCoordinator
+
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
+
+
+async def async_setup_entry(hass: HomeAssistant, config_entry: Trem2ConfigEntry) -> bool:
     """Set up Custom Image Display from a config entry."""
     # Migrate data (also after first setup) to options
     if config_entry.data:
         hass.config_entries.async_update_entry(config_entry, data={}, options=config_entry.data)
 
-    # Store the config entry data in hass.data
-    hass.data.setdefault(DOMAIN, {})
-
-    # Refresh data for coordinator when a config entry is setup
-    update_coordinator = Trem2UpdateCoordinator(
-        hass,
-    )
-    await update_coordinator.async_config_entry_first_refresh()
-
-    # Set up the update listener and coordinator params
-    update_listener = config_entry.add_update_listener(async_update_options)
-    hass.data[DOMAIN][config_entry.entry_id] = {
-        CONF_NAME: DEFAULT_NAME,
-        UPDATE_COORDINATOR: update_coordinator,
-        UPDATE_LISTENER: update_listener,
-        "platforms": PLATFORMS.copy(),
-    }
-
     # Check Terms of Service acceptance
     if not config_entry.options.get(CONF_AGREE, False):
         raise ConfigEntryError("You must review the latest and accept the Terms of Service to use this integration.")
 
+    # Store the config entry data in hass.data
+    hass.data.setdefault(DOMAIN, {})
+
+    # Store runtime data inside the config entry
+    update_coordinator = Trem2UpdateCoordinator(
+        hass,
+        config_entry,
+    )
+    config_entry.runtime_data = Trem2RuntimeData(
+        name=DEFAULT_NAME,
+        coordinator=update_coordinator,
+        recent_sotre=Store(hass, 1, STORAGE_EEW),
+        report_store=Store(hass, 1, STORAGE_REPORT),
+        platforms=PLATFORMS.copy(),
+    )
+
     # Set up the platforms
-    platforms: list = hass.data[DOMAIN][config_entry.entry_id]["platforms"]
-    if CONF_API_TOKEN not in config_entry.options and "binary_sensor" in platforms:
-        platforms.remove("binary_sensor")
+    platforms: list = config_entry.runtime_data.platforms
+    if CONF_API_TOKEN not in config_entry.options and Platform.BINARY_SENSOR in platforms:
+        platforms.remove(Platform.BINARY_SENSOR)
     await hass.config_entries.async_forward_entry_setups(config_entry, platforms)
 
     # Register services
     key = f"{DOMAIN}_simulate_registered"
-    if not hass.data[DOMAIN].get(key):
+    if key not in hass.data[DOMAIN]:
         hass.data[DOMAIN][key] = await async_register_services(hass)
 
     # Install fonts if not already installed
     await async_font_install(hass)
+
+    # Refresh entry when a options is update
+    config_entry.add_update_listener(async_update_options)
+
+    # Refresh data for coordinator when a config entry is setup
+    await update_coordinator.async_config_entry_first_refresh()
 
     # Display startup message
     _LOGGER.info(STARTUP)
@@ -78,7 +89,7 @@ async def async_font_install(hass: HomeAssistant) -> None:
     """Install fonts if not already installed."""
     key = f"{DOMAIN}_font_checked"
 
-    if hass.data[DOMAIN].get(key):
+    if key in hass.data[DOMAIN]:
         return
 
     hass.data[DOMAIN][key] = True
@@ -170,7 +181,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
                     config_entry,
                     platform,
                 )
-                for platform in domain_data[config_entry.entry_id]["platforms"]
+                for platform in config_entry.runtime_data.platforms
             ]
         )
     )

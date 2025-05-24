@@ -5,38 +5,47 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 import json
 import logging
+from typing import TYPE_CHECKING
 
 from dataclasses import dataclass
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_TOKEN, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import EventOrigin, HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api.http import ExpTechHTTPClient
 from .api.websocket import ExpTechWSClient
-from .const import DOMAIN, STORAGE_EEW, STORAGE_REPORT, PARAMS_OPTIONS, PROVIDER_OPTIONS
+from .const import DOMAIN, PARAMS_OPTIONS, PROVIDER_OPTIONS
+from homeassistant.helpers.storage import Store
+
+if TYPE_CHECKING:
+    from .data_classes import Trem2RuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
+type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
 
+
+@dataclass
+class ExpTechClient:
+    """Class to help client threads."""
+
+    http: ExpTechHTTPClient
+    websocket: ExpTechWSClient
+
+
+@dataclass
 class Trem2Conf:
     """Class for save the TREM state retrieval."""
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-    ) -> None:
-        """Initialize the Coordinator configuration."""
-        self.fast_interval = timedelta(seconds=1)
-        self.base_interval = timedelta(seconds=5)
-        self.retrie_interval = timedelta(minutes=5)
-        self.max_interval = timedelta(minutes=15)
-        self.store_eew = Store(hass, 1, STORAGE_EEW)
-        self.store_report = Store(hass, 1, STORAGE_REPORT)
-        self.params = {}
+    fast_interval = timedelta(seconds=1)
+    base_interval = timedelta(seconds=5)
+    retrie_interval = timedelta(minutes=5)
+    max_interval = timedelta(minutes=15)
+    params = {}
 
 
 @dataclass
@@ -67,48 +76,55 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
     def __init__(
         self,
         hass: HomeAssistant,
+        config_entry: Trem2ConfigEntry,
     ) -> None:
         """Initialize the Data update coordinator."""
         super().__init__(
             hass,
             _LOGGER,
-            name=DOMAIN,
+            name=config_entry.title,
         )
 
+        # Get client session
+        session = async_get_clientsession(hass)
+
         # Coordinator initialization
-        self.conf = Trem2Conf(hass)
+        self.client = ExpTechClient(
+            http=ExpTechHTTPClient(
+                session,
+                _LOGGER,
+            ),
+            websocket=ExpTechWSClient(
+                hass,
+                session,
+                _LOGGER,
+            ),
+        )
+        self.config_entry = config_entry
+        self.conf = Trem2Conf()
+        self.session = session
         self.state = Trem2State()
-        self.session = async_get_clientsession(hass)
-        self.http_client = ExpTechHTTPClient(
-            self.session,
-            _LOGGER,
-        )
-        self.ws_client = ExpTechWSClient(
-            hass,
-            self.session,
-            _LOGGER,
-        )
 
     async def _initialize(self, http_exclude: list, ws_exclude: list):
         """Re-initialize the HTTP and WebSocket clients."""
         try:
-            if self.http_client.api_node:
-                http_exclude.append(self.http_client.api_node)
-            self.http_client.initialize_route(
+            if self.client.http.api_node:
+                http_exclude.append(self.client.http.api_node)
+            self.client.http.initialize_route(
                 action="service",
                 unavailable=http_exclude,
             )
 
-            if self.ws_client.api_node:
-                ws_exclude.append(self.ws_client.api_node)
-            self.ws_client.initialize_route(
+            if self.client.websocket.api_node:
+                ws_exclude.append(self.client.websocket.api_node)
+            self.client.websocket.initialize_route(
                 action="service",
                 unavailable=ws_exclude,
             )
 
             # Disconnect websocket if running
-            if self.ws_client.state.is_running:
-                await self.ws_client.disconnect()
+            if self.client.websocket.state.is_running:
+                await self.client.websocket.disconnect()
         except RuntimeError as ex:
             raise ConfigEntryError(f"{ex!r}") from ex
 
@@ -132,23 +148,26 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         _api_token = config_options.get(CONF_API_TOKEN)
         if _api_token:
             try:
-                self.ws_client.conf.access_token = _api_token
-                self.ws_client.conf.params = self.conf.params
-                await self.ws_client.connect()
+                self.client.websocket.conf.access_token = _api_token
+                self.client.websocket.conf.params = self.conf.params
+                await self.client.websocket.connect()
                 self.state.update_interval = self.conf.fast_interval
-                self.state.api_node = self.ws_client.api_node
+                self.state.api_node = self.client.websocket.api_node
             except RuntimeError as ex:
                 raise ConfigEntryNotReady(f"{ex!r}") from ex
         else:
-            self.http_client.params = self.conf.params
-            report_data = await self.http_client.fetch_report()
-            await self._save_report(report_data)
+            self.client.http.params = self.conf.params
+            report_data = await self.client.http.fetch_report()
+            await self._save_report(
+                self.config_entry.runtime_data.report_store,
+                report_data,
+            )
             self.state.update_interval = self.conf.base_interval
-            self.state.api_node = self.http_client.api_node
+            self.state.api_node = self.client.http.api_node
 
         # If max retries, raise connection failures
         self.update_interval = self.state.update_interval
-        unavailable = self.ws_client.unavailables if _api_token else self.http_client.unavailables
+        unavailable = self.client.websocket.unavailables if _api_token else self.client.http.unavailables
         if self.state.api_node:
             self.state.retry_backoff = 1
             self.server_status_event(
@@ -156,8 +175,8 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 unavailable=unavailable,
             )
         else:
-            self.http_client.api_node = None
-            self.ws_client.api_node = None
+            self.client.http.api_node = None
+            self.client.websocket.api_node = None
             self.logger.error(
                 "No available nodes (%s), the service will be suspended",
                 ",".join(unavailable),
@@ -177,8 +196,8 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_shutdown(self):
         """Perform WebSocket disconnect."""
-        if self.ws_client.state.is_running:
-            await self.ws_client.disconnect()
+        if self.client.websocket.state.is_running:
+            await self.client.websocket.disconnect()
 
     async def _async_update_data(self):
         """Perform update data."""
@@ -186,14 +205,14 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         use_http_fetch = True
 
         # Fetch data from WebSocket
-        if self.ws_client.state.is_running and self.ws_client.state.subscrib_service:
-            resp = await self._websocket_update_data(self.ws_client.state.subscrib_service)
+        if self.client.websocket.state.is_running and self.client.websocket.state.subscrib_service:
+            resp = await self._websocket_update_data(self.client.websocket.state.subscrib_service)
             use_http_fetch = self.state.use_http_fallback
 
         # Fetch data from http
         if use_http_fetch:
             try:
-                resp = await self.http_client.fetch_eew()
+                resp = await self.client.http.fetch_eew()
             except RuntimeError:
                 self.state.retry_backoff += 1
 
@@ -228,17 +247,17 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         """Perform WebSocket update data."""
         try:
             # If re-auth is required, an exception is raised
-            if self.ws_client.state.credentials is None:
-                await self.ws_client.disconnect()
+            if self.client.websocket.state.credentials is None:
+                await self.client.websocket.disconnect()
                 raise ConfigEntryAuthFailed("The ExpTech VIP require re-auth.")
 
             # If re-subscribe is required, an exception is raised
             if len(subscrib_service) == 0:
-                await self.ws_client.disconnect()
+                await self.client.websocket.disconnect()
                 raise ConfigEntryAuthFailed("The ExpTech VIP has expired, Please re-subscribe.")
 
             # Handle incoming WebSocket messages
-            resp = await self._handle(await self.ws_client.recv())
+            resp = await self._handle(await self.client.websocket.recv())
 
             # Cancel the http fetch if WebSocket is running
             if self.state.use_http_fallback:
@@ -256,8 +275,8 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             self.state.use_http_fallback = True
             self.server_status_event(
                 event_fire=self.state.retry_backoff == 1,
-                node=self.http_client.api_node,
-                unavailable=self.ws_client.api_node,
+                node=self.client.http.api_node,
+                unavailable=self.client.websocket.api_node,
             )
             self.state.retry_backoff += 1
             _LOGGER.warning("WebSocket error: %s, falling back to HTTP", str(ex))
@@ -301,7 +320,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 return simulator
 
             cached_eew = self.state.cache_eew
-            store_eew = self.conf.store_eew
+            store_eew: Store = self.config_entry.runtime_data.recent_sotre
 
             # Case 2: if response data is not empty
             if resp:
@@ -341,8 +360,9 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 return {}
 
             # if report is empty, restore data from the store
+            store_report: Store = self.config_entry.runtime_data.report_store
             if self.state.cache_report is None:
-                report_data = await self.conf.store_report.async_load() or {}
+                report_data = await store_report.async_load() or {}
             else:
                 report_data = self.state.cache_report
 
@@ -353,8 +373,8 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 # Check if the report data is older than 5 minutes
                 if abs(self.state.report_fetch_time - datetime.now().timestamp()) > 300:
                     # Execute fetching data from the report server
-                    self.state.cache_report = await self.http_client.fetch_report(report_data)
-                    await self._save_report(self.state.cache_report)
+                    self.state.cache_report = await self.client.http.fetch_report(report_data)
+                    await self._save_report(store_report, self.state.cache_report)
             else:
                 self.state.cache_report = report_data
         except (AttributeError, TypeError, RuntimeError) as ex:
@@ -365,10 +385,10 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
         return self.state.cache_report
 
-    async def _save_report(self, data):
+    async def _save_report(self, stored: Store, data: dict | None = None):
         """Save report store to store."""
         self.state.cache_report = data
-        await self.conf.store_report.async_save(data)
+        await stored.async_save(data)
         self.state.report_fetch_time = datetime.now().timestamp()
 
         self.hass.bus.fire(
@@ -398,7 +418,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         """Return current server status."""
         self.state.api_node = kwargs.get(
             "node",
-            (self.ws_client if self.ws_client.state.is_running else self.http_client).api_node,
+            (self.client.websocket if self.client.websocket.state.is_running else self.client.http).api_node,
         )
         if self.update_interval:
             self.state.update_interval = self.update_interval
@@ -411,7 +431,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
     def connection_status(self) -> str:
         """Return current connection mode."""
-        if self.ws_client.state.is_running:
+        if self.client.websocket.state.is_running:
             return "http (fallback)" if self.state.use_http_fallback else "websocket"
 
         return "http"
@@ -419,10 +439,10 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
     def _connection_latency(self) -> float | str:
         """Return current latency."""
         update_interval = self.state.update_interval.total_seconds()
-        latency = self.http_client.latency + (update_interval if update_interval > 1 else 0)
-        if self.ws_client.state.is_running and not self.state.use_http_fallback:
+        latency = self.client.http.latency + (update_interval if update_interval > 1 else 0)
+        if self.client.websocket.state.is_running and not self.state.use_http_fallback:
             latency = abs(
-                self.ws_client.state.ping_time - self.ws_client.state.pong_time,
+                self.client.websocket.state.ping_time - self.client.websocket.state.pong_time,
             )
 
         return f"{latency:.3f}" if latency < 6 else "6s+"

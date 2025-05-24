@@ -1,8 +1,9 @@
 """Register services for the custom component."""
 
 from __future__ import annotations
-from typing import cast, TYPE_CHECKING
+from typing import cast
 
+from .__init__ import Trem2RuntimeData
 
 import logging
 
@@ -15,15 +16,12 @@ from homeassistant.helpers import entity_registry
 
 from .const import ATTR_API_NODE, DOMAIN
 
-if TYPE_CHECKING:
-    from .data_classes import Trem2RuntimeData
-
 _LOGGER = logging.getLogger(__name__)
 
 type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
 
 
-async def async_register_services(hass: HomeAssistant) -> bool:  # noqa: C901
+async def async_register_services(hass: HomeAssistant):  # noqa: C901
     """Register services for the custom component."""
 
     async def async_handle_simulate_earthquake(call: ServiceCall):
@@ -31,17 +29,24 @@ async def async_register_services(hass: HomeAssistant) -> bool:  # noqa: C901
         entity_id = call.data.get(ATTR_ENTITY_ID)
         data = call.data.get(CONF_SERVICE_DATA, {})
 
+        # Check if the entity ID is valid
         if not entity_id:
             raise HomeAssistantError("Entity ID is required")
 
+        # Get the entity registry
         er = entity_registry.async_get(hass)
         entry = er.async_get(entity_id)
 
-        if not entry or not entry.config_entry_id:
+        # Check if the entity ID exists in the registry
+        if not entry:
             raise HomeAssistantError(f"Entity ID {entity_id} not found")
 
+        # Get the config entry
+        if not entry.config_entry_id:
+            raise HomeAssistantError(f"Entity ID {entity_id} not found")
         config_entry = cast(Trem2ConfigEntry, hass.config_entries.async_get_entry(entry.config_entry_id))
 
+        # Check if the entity is a sensor
         if entry.entity_category == EntityCategory.DIAGNOSTIC:
             raise HomeAssistantError("Do not use this service for diagnostic entities")
 
@@ -61,20 +66,28 @@ async def async_register_services(hass: HomeAssistant) -> bool:  # noqa: C901
         base_url = call.data.get(CONF_URL)
         api_node = call.data.get(ATTR_API_NODE)
 
+        # Check if the entity ID is valid
         if not entity_id:
             raise HomeAssistantError("Entity ID is required")
 
+        # Get the entity registry
         er = entity_registry.async_get(hass)
         entry = er.async_get(entity_id)
 
-        if not entry or not entry.config_entry_id:
+        # Check if the entity ID exists in the registry
+        if not entry:
             raise HomeAssistantError(f"Entity ID {entity_id} not found")
 
+        # Get the config entry
+        if not entry.config_entry_id:
+            raise HomeAssistantError(f"Entity ID {entity_id} not found")
         config_entry = cast(Trem2ConfigEntry, hass.config_entries.async_get_entry(entry.config_entry_id))
 
+        # Check if the entity is a sensor
         if entry.entity_category == EntityCategory.DIAGNOSTIC:
             raise HomeAssistantError("Do not use this service for diagnostic entities")
 
+        # Validity of the base_url and api_node
         if api_node is None and base_url is None:
             raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`")
 

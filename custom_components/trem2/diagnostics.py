@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.components.system_log import LogErrorHandler
 from homeassistant.config_entries import ConfigEntry
@@ -9,9 +11,10 @@ from homeassistant.const import CONF_API_TOKEN, CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 
-from .update_coordinator import Trem2UpdateCoordinator
+if TYPE_CHECKING:
+    from .data_classes import Trem2RuntimeData
+    from .update_coordinator import Trem2UpdateCoordinator
 
-from .const import DOMAIN, UPDATE_COORDINATOR
 
 TO_REDACT = [
     CONF_API_TOKEN,
@@ -19,10 +22,12 @@ TO_REDACT = [
     CONF_PASSWORD,
 ]
 
+type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
+
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: Trem2ConfigEntry,
 ):
     """Return diagnostics for a config entry."""
     return _async_get_diagnostics(hass, entry)
@@ -30,7 +35,7 @@ async def async_get_config_entry_diagnostics(
 
 async def async_get_device_diagnostics(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: Trem2ConfigEntry,
     device: dr.DeviceEntry,
 ):
     """Return diagnostics for a device."""
@@ -38,16 +43,16 @@ async def async_get_device_diagnostics(
 
 
 @callback
-def _async_get_diagnostics(hass: HomeAssistant, config_entry: ConfigEntry):
+def _async_get_diagnostics(hass: HomeAssistant, config_entry: Trem2ConfigEntry):
     diag_data = {}
-    update_coordinator: Trem2UpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id][UPDATE_COORDINATOR]
+    update_coordinator: Trem2UpdateCoordinator = config_entry.runtime_data.coordinator
 
     try:
         system_log: LogErrorHandler = hass.data["system_log"]
         records = system_log.records.items()
         diag_data["title"] = config_entry.title
         diag_data["options"] = async_redact_data(config_entry.options, TO_REDACT)
-        diag_data["logs"] = [entry.to_dict() for key, entry in records if DOMAIN in str(key)]
+        diag_data["logs"] = [entry.to_dict() for key, entry in records if config_entry.domain in str(key)]
 
         if update_coordinator:
             diag_data["use_http_fallback"] = update_coordinator.state.use_http_fallback

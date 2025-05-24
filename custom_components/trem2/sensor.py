@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 import logging
 import re
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -38,10 +38,11 @@ from .const import (
     NOTIFICATION_ATTR,
     TZ_TW,
     TZ_UTC,
-    UPDATE_COORDINATOR,
     __version__,
 )
-from .update_coordinator import Trem2UpdateCoordinator
+
+if TYPE_CHECKING:
+    from .data_classes import Trem2RuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,23 +58,22 @@ SENSOR_ENTITYS = [
     ),
 ]
 
+type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: Trem2ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the TREM sensor from config."""
-    domain_data: dict = hass.data[DOMAIN][config_entry.entry_id]
-    coordinator: Trem2UpdateCoordinator = domain_data[UPDATE_COORDINATOR]
-
     # Create the sensor entity
     entities = []
     for entity in SENSOR_ENTITYS:
         if entity.key == "notification":
-            entities.append(NotificationSensor(config_entry, coordinator, entity, hass))
+            entities.append(NotificationSensor(config_entry, entity))
         if entity.key == "protocol":
-            entities.append(DiagnosticsSensor(config_entry, coordinator, entity, hass))
+            entities.append(DiagnosticsSensor(config_entry, entity))
     async_add_entities(entities, update_before_add=True)
 
 
@@ -82,22 +82,18 @@ class NotificationSensor(SensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
-        coordinator: Trem2UpdateCoordinator,
+        config_entry: Trem2ConfigEntry,
         description: SensorEntityDescription,
-        hass: HomeAssistant,
     ) -> None:
         """Initialize the sensor."""
-        self._coordinator = coordinator
-        self._hass = hass
-
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, config_entry.options.get(CONF_EMAIL, "user"))},
+            identifiers={(config_entry.domain, config_entry.options.get(CONF_EMAIL, "user"))},
             name=config_entry.options.get(CONF_EMAIL, config_entry.title),
             manufacturer=MANUFACTURER,
             model="ExpTechTW TREM",
             sw_version=__version__,
         )
+        self.config_entry = config_entry
         self.entity_description = description
 
         self._attributes = {}
@@ -182,7 +178,7 @@ class NotificationSensor(SensorEntity):
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
         self.async_on_remove(
-            self._coordinator.async_add_listener(
+            self.config_entry.runtime_data.coordinator.async_add_listener(
                 self._update_callback,
             )
         )
@@ -190,12 +186,12 @@ class NotificationSensor(SensorEntity):
     @property
     def available(self):
         """Return True if entity is available."""
-        return self._coordinator.last_update_success
+        return self.config_entry.runtime_data.coordinator.last_update_success
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{DOMAIN.upper()} {self.entity_description.key.capitalize()}"
+        return f"{self.config_entry.domain.upper()} {self.entity_description.key.capitalize()}"
 
     @property
     def unique_id(self):
@@ -205,7 +201,7 @@ class NotificationSensor(SensorEntity):
             identifiers: set[tuple[str, str]] = device_info.get("identifiers", set())
             domain, suffix = next(iter(identifiers))
         else:
-            domain = DOMAIN
+            domain = self.config_entry.domain
             suffix = "user"
         return f"{domain.lower()}_{suffix.lower()}_{self.entity_description.key.lower()}"
 
@@ -227,15 +223,15 @@ class NotificationSensor(SensorEntity):
     @callback
     def _update_callback(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self._coordinator.last_update_success:
+        if not self.config_entry.runtime_data.coordinator.last_update_success:
             return
 
         self.async_write_ha_state()
 
     async def get_eew_data(self) -> dict:
         """Get the report or latest notification data."""
-        fetch_eew = self._coordinator.state.earthquake
-        fetch_report = self._coordinator.state.report
+        fetch_eew = self.config_entry.runtime_data.coordinator.state.earthquake
+        fetch_report = self.config_entry.runtime_data.coordinator.state.report
 
         # Get the latest earthquake and report data
         eew_data = fetch_eew or {}
@@ -262,51 +258,47 @@ class DiagnosticsSensor(SensorEntity):
 
     def __init__(
         self,
-        config_entry: ConfigEntry,
-        coordinator: Trem2UpdateCoordinator,
+        config_entry: Trem2ConfigEntry,
         description: SensorEntityDescription,
-        hass: HomeAssistant,
     ) -> None:
         """Initialize the sensor."""
-        self._coordinator = coordinator
-        self._hass = hass
-
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, config_entry.options.get(CONF_EMAIL, "user"))},
+            identifiers={(config_entry.domain, config_entry.options.get(CONF_EMAIL, "user"))},
             name=config_entry.options.get(CONF_EMAIL, config_entry.title),
             manufacturer=MANUFACTURER,
             model="ExpTechTW TREM",
             sw_version=__version__,
         )
+        self.config_entry = config_entry
         self.entity_description = description
 
         self._state = ""
 
     async def async_update(self):
         """Schedule a custom update via the common entity update service."""
-        self._state = self._coordinator.connection_status()
+        self._state = self.config_entry.runtime_data.coordinator.connection_status()
 
         return self
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
         self.async_on_remove(
-            self._coordinator.async_add_listener(
+            self.config_entry.runtime_data.coordinator.async_add_listener(
                 self._update_callback,
             )
         )
 
     async def async_will_remove_from_hass(self) -> None:
         """Unload when this Entity has been remove from HA."""
-        if self._coordinator.ws_client.state.is_running:
-            await self._coordinator.ws_client.disconnect()
+        if self.config_entry.runtime_data.coordinator.client.websocket.state.is_running:
+            await self.config_entry.runtime_data.coordinator.client.websocket.disconnect()
 
         await super().async_will_remove_from_hass()
 
     @property
     def available(self):
         """Return True if entity is available."""
-        return self._coordinator.last_update_success
+        return self.config_entry.runtime_data.coordinator.last_update_success
 
     @property
     def name(self):
@@ -333,7 +325,7 @@ class DiagnosticsSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes."""
-        return self._coordinator.server_status()
+        return self.config_entry.runtime_data.coordinator.server_status()
 
     @property
     def icon(self):
@@ -343,7 +335,7 @@ class DiagnosticsSensor(SensorEntity):
     @callback
     def _update_callback(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self._coordinator.last_update_success:
+        if not self.config_entry.runtime_data.coordinator.last_update_success:
             return
 
         self.async_write_ha_state()
