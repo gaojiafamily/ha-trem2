@@ -20,6 +20,7 @@ English | [繁體中文](README_zhHant.md)<br>
 <br>
 1. The property of Image can be used to obtain the estimated seismic intensity.
 2. [Event triggers](README.md#Event) are now supported.
+3. **Selectable and browsable list of the latest 5 earthquake reports.**
 
 ![trem2](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/trem2.png)
 <br>

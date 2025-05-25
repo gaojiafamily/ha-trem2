@@ -20,6 +20,7 @@
 <br>
 1. 預估震度可以到圖片屬性查看.
 2. 自動化可以[使用事件](README_zhHant.md#事件)來達成.
+3. **可選擇並瀏覽最近 5 筆地震報告.**
 
 ![trem2](https://raw.githubusercontent.com/jayx1011/jayx1011/refs/heads/main/repositories/ha-trem2/trem2.png)
 <br>
