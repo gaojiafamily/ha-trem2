@@ -24,6 +24,14 @@ type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
 
 async def async_register_services(hass: HomeAssistant) -> bool:  # noqa: C901
     """Register services for the custom component."""
+    hass.services.async_register(DOMAIN, "save2file", create_save_image_service(hass))
+    hass.services.async_register(DOMAIN, "simulator", create_simulating_earthquake_service(hass, coordinator))
+    hass.services.async_register(DOMAIN, "set_http_node", create_set_http_node_service(hass, coordinator))
+    hass.services.async_register(DOMAIN, "set_ws_node", create_set_ws_node_service(hass, coordinator))
+
+
+def create_save_image_service(hass: HomeAssistant):
+    """Create the save image service."""
 
     async def async_handle_simulate_earthquake(call: ServiceCall):
         """Handle the simulating earthquake service call."""

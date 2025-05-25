@@ -23,6 +23,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_COUNTY,
     ATTR_ID,
+    ATTR_REPORT_IMG_URL,
     ATTRIBUTION,
     DOMAIN,
     MANUFACTURER,
