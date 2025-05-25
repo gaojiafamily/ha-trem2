@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
-import re
 from typing import Any, TYPE_CHECKING
 
 from homeassistant.components.sensor import (
@@ -20,7 +19,7 @@ from homeassistant.const import (
     CONF_EMAIL,
     EntityCategory,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -42,7 +41,7 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from .data_classes import Trem2RuntimeData
+    from .runtime import Trem2RuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,9 +70,14 @@ async def async_setup_entry(
     entities = []
     for entity in SENSOR_ENTITYS:
         if entity.key == "notification":
-            entities.append(NotificationSensor(config_entry, entity))
+            sensor_entity = NotificationSensor(config_entry, entity)
+            entities.append(sensor_entity)
+            hass.data[DOMAIN][config_entry.entry_id][entity.key] = sensor_entity
         if entity.key == "protocol":
-            entities.append(DiagnosticsSensor(config_entry, entity))
+            sensor_entity = DiagnosticsSensor(config_entry, entity)
+            entities.append(sensor_entity)
+            hass.data[DOMAIN][config_entry.entry_id][entity.key] = sensor_entity
+
     async_add_entities(entities, update_before_add=True)
 
 
@@ -94,6 +98,7 @@ class NotificationSensor(SensorEntity):
             sw_version=__version__,
         )
         self.config_entry = config_entry
+        self.coordinator = config_entry.runtime_data.coordinator
         self.entity_description = description
 
         self._attributes = {}
@@ -101,92 +106,24 @@ class NotificationSensor(SensorEntity):
         for k in NOTIFICATION_ATTR:
             self._attr_value[k] = ""
         self._state = ""
-
-    async def async_update(self):
-        """Schedule a custom update via the common entity update service."""
-        try:
-            notification = await self.get_eew_data()
-            eew: dict = notification.get("eq", {})
-            time: Any | None = eew.get("time")
-            time_of_occurrence = ""
-
-            if "serial" in notification:
-                notification_id = "-".join(
-                    map(
-                        str,
-                        (
-                            notification.get("id", ""),
-                            notification.get("serial", ""),
-                        ),
-                    )
-                )
-            else:
-                pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
-                match = re.search(
-                    pattern,
-                    notification.get("id", ""),
-                )
-                if match is None:
-                    notification_id = ""
-                else:
-                    notification_id = "-".join(match.groups())
-
-            # formatted the time of occurrence
-            if time:
-                formatted_time = datetime.fromtimestamp(
-                    round(time / 1000),
-                    TZ_UTC,
-                ).astimezone(TZ_TW)
-                time_of_occurrence = formatted_time.strftime("%Y/%m/%d %H:%M:%S")
-
-            # Check state change
-            if self._state != notification_id:
-                intensitys = {}
-
-                for county, details in notification.get("list", {}).items():
-                    county_int = details["int"]
-                    intensitys[county] = county_int
-                    for town in details["town"]:
-                        intensitys[f"{county}{town}"] = county_int
-
-                self._attr_value[ATTR_AUTHOR] = notification.get("author", eew.get("author", ""))
-                self._attr_value[ATTR_ID] = notification_id
-                self._attr_value[ATTR_LOCATION] = eew.get("loc", "")
-                self._attr_value[ATTR_LONGITUDE] = eew.get("lon", "")
-                self._attr_value[ATTR_LATITUDE] = eew.get("lat", "")
-                self._attr_value[ATTR_MAG] = eew.get("mag", "")
-                self._attr_value[ATTR_DEPTH] = eew.get("depth", "")
-                self._attr_value[ATTR_TIME] = time_of_occurrence
-                if bool(intensitys):
-                    self._attr_value[ATTR_LIST] = intensitys
-                else:
-                    self._attr_value.pop(ATTR_LIST, None)
-
-                # Update the state
-                self._state = notification_id
-        except TypeError as ex:
-            _LOGGER.error("TypeError occurred while processing earthquake data: %s", ex)
-        except AttributeError as ex:
-            _LOGGER.error(
-                "AttributeError occurred while accessing earthquake data: %s",
-                ex,
-                exc_info=ex,
-            )
-
-        return self
+        self.coordinator.async_add_listener(self.async_write_ha_state)
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
+
+        def _schedule_update_callback() -> None:
+            self.hass.async_create_task(self._update_callback())
+
         self.async_on_remove(
-            self.config_entry.runtime_data.coordinator.async_add_listener(
-                self._update_callback,
+            self.coordinator.async_add_listener(
+                _schedule_update_callback,
             )
         )
 
     @property
     def available(self):
         """Return True if entity is available."""
-        return self.config_entry.runtime_data.coordinator.last_update_success
+        return self.coordinator.last_update_success
 
     @property
     def name(self):
@@ -220,37 +157,50 @@ class NotificationSensor(SensorEntity):
 
         return self._attributes
 
-    @callback
-    def _update_callback(self) -> None:
+    async def _update_callback(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self.config_entry.runtime_data.coordinator.last_update_success:
+        if not self.coordinator.last_update_success:
             return
 
+        try:
+            selected = getattr(self.config_entry.runtime_data, "selected_option", None)
+            notification = await self.coordinator.store.load_eew_data(selected)
+            eew: dict = notification.get("eq", {})
+            time: Any | None = eew.get("time")
+            time_of_occurrence = ""
+
+            # formatted the time of occurrence
+            if time:
+                formatted_time = datetime.fromtimestamp(
+                    round(time / 1000),
+                    TZ_UTC,
+                ).astimezone(TZ_TW)
+                time_of_occurrence = formatted_time.strftime("%Y/%m/%d %H:%M:%S")
+
+            # Check state change
+            if self._state != notification["id"]:
+                self._attr_value[ATTR_AUTHOR] = notification.get("author", eew.get("author", ""))
+                self._attr_value[ATTR_ID] = notification["id"]
+                self._attr_value[ATTR_LOCATION] = eew.get("loc", "")
+                self._attr_value[ATTR_LONGITUDE] = eew.get("lon", "")
+                self._attr_value[ATTR_LATITUDE] = eew.get("lat", "")
+                self._attr_value[ATTR_MAG] = eew.get("mag", "")
+                self._attr_value[ATTR_DEPTH] = eew.get("depth", "")
+                self._attr_value[ATTR_TIME] = time_of_occurrence
+                self._attr_value[ATTR_LIST] = notification.get("list")
+
+                # Update the state
+                self._state = notification["id"]
+        except TypeError as ex:
+            _LOGGER.error("TypeError occurred while processing earthquake data: %s", ex)
+        except AttributeError as ex:
+            _LOGGER.error(
+                "AttributeError occurred while accessing earthquake data: %s",
+                ex,
+                exc_info=ex,
+            )
+
         self.async_write_ha_state()
-
-    async def get_eew_data(self) -> dict:
-        """Get the report or latest notification data."""
-        fetch_eew = self.config_entry.runtime_data.coordinator.state.earthquake
-        fetch_report = self.config_entry.runtime_data.coordinator.state.report
-
-        # Get the latest earthquake and report data
-        eew_data = fetch_eew or {}
-        report_data = fetch_report or {}
-
-        # Check if the report data is more recent than the notification data
-        if report_data.get("time", 0) > eew_data.get("time", 0):
-            eew_data["id"] = report_data.get("id", None)
-            eew_data.pop("serial", None)
-            eq: dict = eew_data.get("eq", {})
-            for key in ("author", "lat", "lon", "depth", "loc", "mag", "time"):
-                eq[key] = report_data.get(key, None)
-            eq["max"] = report_data.get("int", None)
-            eew_data["eq"] = eq
-            eew_data["list"] = report_data.get("list", None)
-            eew_data["md5"] = report_data.get("md5", None)
-
-        # Otherwise, return the notification data
-        return eew_data
 
 
 class DiagnosticsSensor(SensorEntity):
@@ -270,35 +220,36 @@ class DiagnosticsSensor(SensorEntity):
             sw_version=__version__,
         )
         self.config_entry = config_entry
+        self.coordinator = config_entry.runtime_data.coordinator
         self.entity_description = description
 
         self._state = ""
-
-    async def async_update(self):
-        """Schedule a custom update via the common entity update service."""
-        self._state = self.config_entry.runtime_data.coordinator.connection_status()
-
-        return self
+        self._attributes = {}
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
+        await super().async_added_to_hass()
+
+        def _schedule_update_callback() -> None:
+            self.hass.async_create_task(self._update_callback())
+
         self.async_on_remove(
-            self.config_entry.runtime_data.coordinator.async_add_listener(
-                self._update_callback,
+            self.coordinator.async_add_listener(
+                _schedule_update_callback,
             )
         )
 
     async def async_will_remove_from_hass(self) -> None:
         """Unload when this Entity has been remove from HA."""
-        if self.config_entry.runtime_data.coordinator.client.websocket.state.is_running:
-            await self.config_entry.runtime_data.coordinator.client.websocket.disconnect()
+        if self.coordinator.client.websocket.state.is_running:
+            await self.coordinator.client.websocket.disconnect()
 
         await super().async_will_remove_from_hass()
 
     @property
     def available(self):
         """Return True if entity is available."""
-        return self.config_entry.runtime_data.coordinator.last_update_success
+        return self.coordinator.last_update_success
 
     @property
     def name(self):
@@ -325,17 +276,20 @@ class DiagnosticsSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes."""
-        return self.config_entry.runtime_data.coordinator.server_status()
+        return self._attributes
 
     @property
     def icon(self):
         """Return the icon of the sensor."""
         return "mdi:flash" if self._state == "websocket" else "mdi:lock"
 
-    @callback
-    def _update_callback(self) -> None:
+    async def _update_callback(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self.config_entry.runtime_data.coordinator.last_update_success:
+        if not self.coordinator.last_update_success:
             return
+
+        protocol, _ = await self.coordinator.client.api_node()
+        self._state = protocol
+        self._attributes = await self.coordinator.client.server_status()
 
         self.async_write_ha_state()

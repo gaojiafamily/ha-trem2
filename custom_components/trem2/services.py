@@ -1,8 +1,8 @@
 """Register services for the custom component."""
 
 from __future__ import annotations
-from typing import cast, TYPE_CHECKING
 
+from typing import cast, TYPE_CHECKING
 
 import logging
 
@@ -12,11 +12,10 @@ from homeassistant.core import EventOrigin, HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry
 
-
 from .const import ATTR_API_NODE, DOMAIN
 
 if TYPE_CHECKING:
-    from .data_classes import Trem2RuntimeData
+    from .runtime import Trem2RuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ async def async_register_services(hass: HomeAssistant) -> bool:  # noqa: C901
             raise HomeAssistantError("Do not use this service for diagnostic entities")
 
         update_coordinator = config_entry.runtime_data.coordinator
-        update_coordinator.state.simulating = data
+        update_coordinator.data["recent"]["simulating"] = data
 
         if "eq" in data:
             _LOGGER.warning("Start earthquake simulation")
@@ -91,7 +90,7 @@ async def async_register_services(hass: HomeAssistant) -> bool:  # noqa: C901
         )
         await update_coordinator.async_refresh()
 
-        update_coordinator.server_status_event(node=api_node or base_url)
+        await update_coordinator.server_status_event(node=api_node or base_url)
 
     try:
         hass.services.async_register(

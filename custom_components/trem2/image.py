@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import dataclasses
 import logging
-from pathlib import Path
-import re
-from typing import Any, TYPE_CHECKING
-import voluptuous as vol
 
+from pathlib import Path
 from pyvips import Image
+from typing import Any, TYPE_CHECKING
+
+import voluptuous as vol
 
 from homeassistant.components.image import ImageEntity, ImageEntityDescription
 from homeassistant.config_entries import ConfigEntry
@@ -24,19 +23,18 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_COUNTY,
     ATTR_ID,
-    ATTR_REPORT_IMG_URL,
     ATTRIBUTION,
     DOMAIN,
     MANUFACTURER,
     OFFICIAL_URL,
-    REPORT_IMG_URL,
     __version__,
 )
 from .core.earthquake import get_calculate_intensity, intensity_to_text, round_intensity
 from .core.map import draw as draw_isoseismal_map
+from .runtime import Trem2ImageData
 
 if TYPE_CHECKING:
-    from .data_classes import Trem2RuntimeData
+    from .runtime import Trem2RuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,13 +55,14 @@ async def async_setup_entry(
     entities = []
     for entity in IMAGE_ENTITYS:
         if entity.key == "monitoring":
-            entities.append(
-                MonitoringImage(
-                    config_entry,
-                    entity,
-                    hass,
-                )
+            image_entity = MonitoringImage(
+                config_entry,
+                entity,
+                hass,
             )
+            entities.append(image_entity)
+            hass.data[DOMAIN][config_entry.entry_id][entity.key] = image_entity
+
     async_add_entities(entities, update_before_add=True)
 
     # Register services for the binary sensor
@@ -78,17 +77,6 @@ async def async_setup_entry(
             "async_handle_save_image",
         )
         hass.data[config_entry.domain][key] = True
-
-
-@dataclasses.dataclass
-class ImageStore:
-    """Manage Image data."""
-
-    cached_image_id: str | None = None
-    cached_image: bytes | None = None
-    attributes = {}
-    attr_value = {}
-    intensitys = {}
 
 
 class MonitoringImage(ImageEntity):
@@ -112,29 +100,35 @@ class MonitoringImage(ImageEntity):
         )
 
         self.config_entry = config_entry
+        self.coordinator = config_entry.runtime_data.coordinator
+        self.data = Trem2ImageData()
         self.entity_description = description
-        self.image_store = ImageStore()
 
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
+        await super().async_added_to_hass()
 
         def _schedule_update_callback() -> None:
             self.hass.async_create_task(self._update_callback())
 
         self.async_on_remove(
-            self.config_entry.runtime_data.coordinator.async_add_listener(
+            self.coordinator.async_add_listener(
                 _schedule_update_callback,
             )
         )
 
+    async def async_will_remove_from_hass(self):
+        """Unload when this Entity has been remove from HA."""
+        await super().async_will_remove_from_hass()
+
     async def async_image(self) -> bytes | None:
         """Draw the monitoring image."""
-        return self.image_store.cached_image
+        return self.data.image
 
     @property
     def available(self):
         """Return True if entity is available."""
-        return self.config_entry.runtime_data.coordinator.last_update_success
+        return self.coordinator.last_update_success
 
     @property
     def content_type(self):
@@ -161,59 +155,46 @@ class MonitoringImage(ImageEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes."""
-        self.image_store.attributes = {}
-        self.image_store.attributes[ATTR_ATTRIBUTION] = ATTRIBUTION
-        for k, v in self.image_store.attr_value.items():
-            self.image_store.attributes[k] = v
+        self.data.attributes = {}
+        self.data.attributes[ATTR_ATTRIBUTION] = ATTRIBUTION
+        for k, v in self.data.attr_value.items():
+            self.data.attributes[k] = v
 
-        return self.image_store.attributes
+        return self.data.attributes
 
     async def _update_callback(self):
         """Handle updated data from the coordinator."""
-        if not self.config_entry.runtime_data.coordinator.last_update_success:
+        if not self.coordinator.last_update_success:
             return
 
         # Get the latest earthquake data
-        eq_data = await self.get_eew_data()
-        if "id" in eq_data:
-            eq_id = "-".join(
-                [
-                    str(eq_data["id"]),
-                    str(eq_data.get("serial", "")),
-                ]
-            )
+        selected = getattr(self.config_entry.runtime_data, "selected_option", None)
+        eq_data = await self.coordinator.store.load_eew_data(selected)
+        if self.coordinator.data["recent"]["simulating"]:
+            eq_id = f"{eq_data['id']}_simulating"
         else:
-            return
+            eq_id = eq_data["id"]
 
         # Get the latest notification data
         try:
-            if "serial" not in eq_data:
-                pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
-                match = re.search(
-                    pattern,
-                    eq_data["id"],
-                )
-                if match:
-                    eq_id = "-".join(match.groups())
-
             # Check state change
-            if self.image_store.cached_image_id == eq_id:
+            if self.data.image_id == eq_id:
                 return
 
             # Calculate the intensity
             match eq_data:
-                case {"list": list_data}:
-                    self.image_store.intensitys = await self.get_int_data(list_data)
-                    self.image_store.attr_value = {
-                        ATTR_REPORT_IMG_URL: f"{REPORT_IMG_URL}/{eq_data['id']}.jpg",
+                case {"list2": intensitys}:
+                    self.data.intensitys = intensitys
+                    self.data.attr_value = {
+                        ATTR_COUNTY[k]: intensity_to_text(v)
+                        for k, v in intensitys.items()  #
                     }
+
                 case {"eq": eq_info}:
-                    self.image_store.intensitys = get_calculate_intensity(
-                        eq_info or await self.get_int_data(),
-                    )
-                    self.image_store.attr_value = {
+                    self.data.intensitys = get_calculate_intensity(eq_info)
+                    self.data.attr_value = {
                         ATTR_COUNTY.get(k, k): intensity_to_text(v)
-                        for k, v in self.image_store.intensitys.items()
+                        for k, v in self.data.intensitys.items()
                         if round_intensity(v) > 0
                     }
 
@@ -227,7 +208,7 @@ class MonitoringImage(ImageEntity):
 
             # Draw the isoseismal map
             svg_cont = draw_isoseismal_map(
-                self.image_store.intensitys,
+                self.data.intensitys,
                 eq_data,
                 eq_id,
                 bg_path,
@@ -244,16 +225,16 @@ class MonitoringImage(ImageEntity):
                 "",
             )
 
-            # Storing the PNG to cached_image
-            self.image_store.cached_image = await asyncio.to_thread(  # type: ignore
+            # Storing the PNG to image
+            self.data.image = await asyncio.to_thread(  # type: ignore
                 svg_data.write_to_buffer,
                 ".png",
             )
             self._attr_image_last_updated = dt_util.utcnow()
 
-            # Update the _cached_image_id
-            self.image_store.cached_image_id = eq_id
-            self.image_store.attr_value[ATTR_ID] = eq_id
+            # Update the _image_id
+            self.data.image_id = eq_id
+            self.data.attr_value[ATTR_ID] = eq_id
         except TypeError as ex:
             _LOGGER.error("TypeError occurred while processing earthquake data: %s", ex)
         except AttributeError as ex:
@@ -266,54 +247,9 @@ class MonitoringImage(ImageEntity):
         # Update the attributes
         self.async_write_ha_state()
 
-    async def get_eew_data(self) -> dict:
-        """Get the report or latest notification data."""
-        fetch_eew = self.config_entry.runtime_data.coordinator.state.earthquake
-        fetch_report = self.config_entry.runtime_data.coordinator.state.report
-
-        # Get the latest earthquake data
-        if isinstance(fetch_eew, list) and len(fetch_eew) > 0:
-            eew_data = fetch_eew[0]
-        else:
-            eew_data = fetch_eew or {}
-
-        # Get the latest report data
-        if isinstance(fetch_report, list) and len(fetch_report) > 0:
-            report_data = fetch_report[0]
-        else:
-            report_data = fetch_report or {}
-
-        # Check if the report data is more recent than the notification data
-        if report_data.get("time", 0) > eew_data.get("time", 0):
-            eew_data["id"] = report_data.get("id", None)
-            eew_data.pop("serial", None)
-            eq: dict = eew_data.get("eq", {})
-            for key in ("author", "lat", "lon", "depth", "loc", "mag", "time"):
-                eq[key] = report_data.get(key, None)
-            eq["max"] = report_data.get("int", None)
-            eew_data["eq"] = eq
-            eew_data["list"] = report_data.get("list", {})
-            eew_data["md5"] = report_data.get("md5", None)
-
-        # Otherwise, return the notification data
-        return eew_data
-
-    async def get_int_data(self, intensitys: dict | None = None) -> dict:
-        """Get the latest intensity data."""
-        int_list = {}
-
-        if intensitys is None:
-            int_list = self.config_entry.runtime_data.coordinator.state.intensity
-        else:
-            county_list = {v: k for k, v in ATTR_COUNTY.items()}
-            for county, detail in intensitys.items():
-                int_list[county_list[county]] = detail["int"]
-
-        return int_list
-
     async def async_handle_save_image(self, **kwargs) -> None:
         """Handle the save image service."""
-        extra_state_attr = self.image_store.attributes
+        extra_state_attr = self.data.attributes
 
         try:
             defult_filename = (

@@ -10,6 +10,7 @@ import json
 from logging import Logger
 import random
 from time import monotonic
+from typing import Any
 
 from aiohttp import (
     ClientConnectionResetError,
@@ -49,7 +50,6 @@ class ExpTechWSConf:
         WebSocketService.CWA_INTENSITY,
         WebSocketService.EEW,
         WebSocketService.REPORT,
-        WebSocketService.TREM_EEW,
         WebSocketService.TREM_INTENSITY,
         WebSocketService.TSUNAMI,
     ]
@@ -262,6 +262,7 @@ class ExpTechWSClient:
         match event:
             case "verify":
                 await self._verify()
+
                 return msg_data
             case "info":
                 msg_code = msg_data.get("code")
@@ -271,6 +272,7 @@ class ExpTechWSClient:
                     self.state.credentials = None
                 if msg_code == 503:
                     await asyncio.sleep(5)
+
                 return msg_data
             case "data" | "ntp":
                 return msg_data
@@ -299,7 +301,7 @@ class ExpTechWSClient:
                 await asyncio.sleep(3)
                 continue
 
-    async def recv(self) -> dict | None:
+    async def recv(self) -> dict[str, Any] | None:
         """Fetch data from the ExpTech server via WebSocket.
 
         Returns:

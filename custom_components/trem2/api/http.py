@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import random
-import re
 from time import monotonic
+from typing import Any
 
 from aiohttp import ClientSession
 from aiohttp.client_exceptions import ClientConnectorError
@@ -47,7 +47,7 @@ class ExpTechHTTPClient:
         self.params = {}
         self.latency: float = 0
 
-    async def fetch_eew(self) -> list | None:
+    async def fetch_eew(self) -> list[dict[str, Any]] | None:
         """Fetch earthquake data from the ExpTech server via HTTP.
 
         Returns:
@@ -97,16 +97,13 @@ class ExpTechHTTPClient:
 
         raise RuntimeError("An error occurred during message reception")
 
-    async def fetch_report(self, local_report: dict | None = None) -> dict | None:
+    async def fetch_report(self) -> list:
         """Fetch report summary from the ExpTech server via HTTP.
 
         Returns:
-            list | None: The received message(s) or None if not available.
+            list: The received message(s) or empty list.
 
         """
-        if local_report is None:
-            local_report = {}
-
         try:
             headers = {
                 ACCEPT: CONTENT_TYPE_JSON,
@@ -116,7 +113,7 @@ class ExpTechHTTPClient:
 
             response = await self.session.request(
                 method=METH_GET,
-                url=REPORT_URL,
+                url=f"{REPORT_URL}?limit=5",
                 headers=headers,
                 timeout=REQUEST_TIMEOUT,
             )
@@ -124,37 +121,20 @@ class ExpTechHTTPClient:
             self.logger.error("Failed fetching data from report server, %s", str(ex))
         else:
             if response.ok:
-                resp = await response.json()
-                if resp:
-                    pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
-                    filtered = [d for d in resp if re.search(pattern, d.get("id", ""))]
-                    fetch_report: dict = filtered[0] if filtered else resp[0]
-                    fetch_report.setdefault("author", "cwa" if filtered else "ExpTech")
-                    fetch_report_id = fetch_report.get("id", "")
-                    local_report_id = local_report.get("id", "")
-
-                    # Check if the report data is up to date
-                    if fetch_report_id in {"", local_report_id}:
-                        return fetch_report
-
-                    report_data = await self.fetch_report_detail(fetch_report_id) or fetch_report
-                    report_data.setdefault("author", fetch_report.get("author", "ExpTech"))
-                    return report_data
-
-                self.logger.debug("Report data is empty")
+                return await response.json()
 
             self.logger.error(
                 "Failed fetching data from report server, (HTTP Status Code = %s)",
                 response.status,
             )
 
-        return None
+        return []
 
-    async def fetch_report_detail(self, report_id) -> dict | None:
+    async def fetch_report_detail(self, report_id) -> dict:
         """Fetch report detail from the ExpTech server via HTTP.
 
         Returns:
-            list | None: The received message(s) or None if not available.
+            dict: The report data detail.
 
         """
         try:
@@ -181,7 +161,7 @@ class ExpTechHTTPClient:
             response.status,
         )
 
-        return None
+        return {}
 
     def initialize_route(self, action="class", **kwargs) -> tuple:
         """Randomly select a node for HTTP connection.

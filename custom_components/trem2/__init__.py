@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 import subprocess
 
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_TOKEN, Platform
 from homeassistant.core import HomeAssistant
@@ -23,7 +22,7 @@ from .const import (
     STORAGE_EEW,
     STORAGE_REPORT,
 )
-from .data_classes import Trem2RuntimeData
+from .runtime import Trem2RuntimeData
 from .services import async_register_services
 from .update_coordinator import Trem2UpdateCoordinator
 
@@ -47,24 +46,48 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: Trem2ConfigEntry)
     # Store the config entry data in hass.data
     hass.data.setdefault(DOMAIN, {})
 
+    # Refresh entry when a options is update
+    config_entry.add_update_listener(async_update_options)
+
     # Store runtime data inside the config entry
     update_coordinator = Trem2UpdateCoordinator(
         hass,
         config_entry,
     )
-    config_entry.runtime_data = Trem2RuntimeData(
+    runtime_data = Trem2RuntimeData(
         name=DEFAULT_NAME,
         coordinator=update_coordinator,
-        recent_sotre=Store(hass, 1, STORAGE_EEW),
-        report_store=Store(hass, 1, STORAGE_REPORT),
+        recent_sotre=Store(
+            hass,
+            1,
+            STORAGE_EEW.format(
+                domain=DOMAIN,
+                entry_id=config_entry.entry_id,
+            ),
+        ),
+        report_store=Store(
+            hass,
+            1,
+            STORAGE_REPORT.format(
+                domain=DOMAIN,
+                entry_id=config_entry.entry_id,
+            ),
+        ),
         platforms=PLATFORMS.copy(),
     )
+    hass.data[DOMAIN][config_entry.entry_id] = {
+        "runtime_data": runtime_data,
+    }
+    config_entry.runtime_data = runtime_data
 
     # Set up the platforms
     platforms: list = config_entry.runtime_data.platforms
     if CONF_API_TOKEN not in config_entry.options and Platform.BINARY_SENSOR in platforms:
         platforms.remove(Platform.BINARY_SENSOR)
     await hass.config_entries.async_forward_entry_setups(config_entry, platforms)
+
+    # Refresh data for coordinator when a config entry is setup
+    await update_coordinator.async_config_entry_first_refresh()
 
     # Register services
     key = f"{DOMAIN}_simulate_registered"
@@ -73,12 +96,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: Trem2ConfigEntry)
 
     # Install fonts if not already installed
     await async_font_install(hass)
-
-    # Refresh entry when a options is update
-    config_entry.add_update_listener(async_update_options)
-
-    # Refresh data for coordinator when a config entry is setup
-    await update_coordinator.async_config_entry_first_refresh()
 
     # Display startup message
     _LOGGER.info(STARTUP)
@@ -166,14 +183,26 @@ async def async_font_install(hass: HomeAssistant) -> None:
             await install_font(hass.config.path(path))
 
 
-async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry):
+async def async_update_options(hass: HomeAssistant, config_entry: Trem2ConfigEntry):
     """Handle options update."""
     await hass.config_entries.async_reload(config_entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, config_entry: Trem2ConfigEntry) -> bool:
     """Unload a config entry."""
     domain_data: dict = hass.data[DOMAIN]
+
+    # Stored coordinator data
+    recent_data = config_entry.runtime_data.coordinator.data["recent"]
+    if recent_data:
+        store_eew = config_entry.runtime_data.recent_sotre
+        await store_eew.async_save(recent_data)
+    report_data = config_entry.runtime_data.coordinator.data["report"]
+    if report_data:
+        store_report = config_entry.runtime_data.report_store
+        await store_report.async_save(report_data)
+
+    # Unload platforms
     unload_ok = all(
         await asyncio.gather(
             *[
@@ -194,7 +223,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
     return unload_ok
 
 
-async def async_reload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
+async def async_reload_entry(hass: HomeAssistant, config_entry: Trem2ConfigEntry) -> None:
     """Reload a config entry."""
     await async_unload_entry(hass, config_entry)
     await async_setup_entry(hass, config_entry)

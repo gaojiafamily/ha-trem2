@@ -33,8 +33,7 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from .data_classes import Trem2RuntimeData
-    from .update_coordinator import Trem2UpdateCoordinator
+    from .runtime import Trem2RuntimeData
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,20 +56,17 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the TREM binary sensor from config."""
-    update_coordinator: Trem2UpdateCoordinator = config_entry.runtime_data.coordinator
-
     # Create the binary sensor entity
     entities = []
     for entity in SENSOR_ENTITYS:
         if entity.key == "intensity":
-            entities.append(
-                IntensityBinarySensor(
-                    config_entry,
-                    update_coordinator,
-                    entity,
-                    hass,
-                )
+            sensor_entity = IntensityBinarySensor(
+                config_entry,
+                entity,
             )
+            entities.append(sensor_entity)
+            hass.data[DOMAIN][config_entry.entry_id][entity.key] = sensor_entity
+
     async_add_entities(entities, update_before_add=True)
 
     # Register services for the binary sensor
@@ -94,14 +90,9 @@ class IntensityBinarySensor(BinarySensorEntity):
     def __init__(
         self,
         config_entry: Trem2ConfigEntry,
-        coordinator: Trem2UpdateCoordinator,
         description: BinarySensorEntityDescription,
-        hass: HomeAssistant,
     ) -> None:
         """Initialize the binary sensor."""
-        self._coordinator = coordinator
-        self._hass = hass
-
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, config_entry.options.get(CONF_EMAIL, "user"))},
             name=config_entry.options.get(CONF_EMAIL, config_entry.title),
@@ -109,37 +100,34 @@ class IntensityBinarySensor(BinarySensorEntity):
             model="ExpTechTW TREM",
             sw_version=__version__,
         )
+        self.coordinator = config_entry.runtime_data.coordinator
         self.entity_description = description
 
         self._attr_value = {}
         self._state = False
         self._icon = INT_DEFAULT_ICON
 
-    async def async_update(self):
-        """Schedule a custom update via the common entity update service."""
-        if "area" in self._coordinator.state.intensity:
-            self._icon = INT_TRIGGER_ICON
-        else:
-            self._icon = INT_DEFAULT_ICON
-
-        self._state = "area" in self._coordinator.state.intensity
-        self._attr_value = self.convert_zip3_town()
-
-        return self
-
     async def async_added_to_hass(self) -> None:
         """Run when this Entity has been added to HA."""
+        await super().async_added_to_hass()
+
         self.async_on_remove(
-            self._coordinator.async_add_listener(
+            self.coordinator.async_add_listener(
                 self._update_callback,
             )
         )
 
+    async def async_will_remove_from_hass(self):
+        """Unload when this Entity has been remove from HA."""
+        await super().async_will_remove_from_hass()
+
     def convert_zip3_town(self) -> dict:
         """Convert ZIP Code to Township name."""
-        if "area" in self._coordinator.state.intensity:
+        intensity_data: dict = self.coordinator.data["recent"]["intensity"]
+
+        if "area" in intensity_data:
             area = {}
-            for i, j in self._coordinator.state.intensity["area"]:
+            for i, j in intensity_data:
                 town = []
                 for zipcode in j:
                     if zipcode in ZIP3_TOWN:
@@ -149,11 +137,11 @@ class IntensityBinarySensor(BinarySensorEntity):
             return {
                 ATTR_ID: "-".join(
                     [
-                        str(self._coordinator.state.intensity.get("id") or ""),
-                        str(self._coordinator.state.intensity.get("serial") or ""),
+                        str(intensity_data.get("id") or ""),
+                        str(intensity_data.get("serial") or ""),
                     ]
                 ),
-                ATTR_AUTHOR: self._coordinator.state.intensity["author"],
+                ATTR_AUTHOR: intensity_data["author"],
                 ATTR_LIST: area,
             }
 
@@ -162,7 +150,7 @@ class IntensityBinarySensor(BinarySensorEntity):
     @property
     def available(self):
         """Return True if entity is available."""
-        return self._coordinator.last_update_success
+        return self.coordinator.last_update_success
 
     @property
     def name(self):
@@ -199,8 +187,18 @@ class IntensityBinarySensor(BinarySensorEntity):
     @callback
     def _update_callback(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self._coordinator.last_update_success:
+        if not self.coordinator.last_update_success:
             return
+
+        intensity_data = self.coordinator.data["recent"]["intensity"]
+
+        if "area" in intensity_data:
+            self._icon = INT_TRIGGER_ICON
+        else:
+            self._icon = INT_DEFAULT_ICON
+
+        self._state = "area" in intensity_data
+        self._attr_value = self.convert_zip3_town()
 
         self.async_write_ha_state()
 
@@ -212,15 +210,15 @@ class IntensityBinarySensor(BinarySensorEntity):
         if api_node is None and base_url is None:
             raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`")
 
-        if not self._coordinator.client.websocket.state.conn:
+        if not self.coordinator.client.websocket.state.conn:
             raise HomeAssistantError("WebSocket is unavailable.")
 
-        self._coordinator.client.websocket.initialize_route(
+        self.coordinator.client.websocket.initialize_route(
             action="service",
             api_node=api_node,
             base_url=base_url,
         )
-        self._coordinator.update_interval = self._coordinator.conf.fast_interval
-        await self._coordinator.async_refresh()
+        self.coordinator.update_interval = self.coordinator.conf.fast_interval
+        await self.coordinator.async_refresh()
 
-        self._coordinator.server_status_event(node=api_node)
+        await self.coordinator.server_status_event(node=api_node)
