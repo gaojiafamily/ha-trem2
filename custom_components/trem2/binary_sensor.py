@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
-import voluptuous as vol
+from typing import TYPE_CHECKING, Any
 
+import voluptuous as vol
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -20,10 +20,10 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback, async_get_current_platform
 
 from .const import (
+    ATTR_API_NODE,
     ATTR_AUTHOR,
     ATTR_ID,
     ATTR_LIST,
-    ATTR_API_NODE,
     DOMAIN,
     INT_DEFAULT_ICON,
     INT_TRIGGER_ICON,
@@ -127,7 +127,7 @@ class IntensityBinarySensor(BinarySensorEntity):
 
         if "area" in intensity_data:
             area = {}
-            for i, j in intensity_data:
+            for i, j in intensity_data.items():
                 town = []
                 for zipcode in j:
                     if zipcode in ZIP3_TOWN:
@@ -135,12 +135,10 @@ class IntensityBinarySensor(BinarySensorEntity):
                 area[i] = town
 
             return {
-                ATTR_ID: "-".join(
-                    [
-                        str(intensity_data.get("id") or ""),
-                        str(intensity_data.get("serial") or ""),
-                    ]
-                ),
+                ATTR_ID: "-".join([
+                    str(intensity_data.get("id") or ""),
+                    str(intensity_data.get("serial") or ""),
+                ]),
                 ATTR_AUTHOR: intensity_data["author"],
                 ATTR_LIST: area,
             }

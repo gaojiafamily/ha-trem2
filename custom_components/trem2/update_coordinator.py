@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_TOKEN, EVENT_HOMEASSISTANT_STOP
@@ -167,7 +167,10 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                     self.conf.max_interval,
                 )
                 self.update_interval = new_interval
-                _LOGGER.error(f"Update failed, next attempt in {new_interval.total_seconds()} seconds")
+                _LOGGER.error(
+                    "Update failed, next attempt in %s seconds",
+                    new_interval.total_seconds(),
+                )
                 raise UpdateFailed()
 
         return self.store.coordinator_data
@@ -182,18 +185,16 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             # Handle incoming Http messages
             if resp:
                 filtered = [d for d in resp if d.get("author") == "cwa"]
-                await self._handle(
-                    {
-                        "type": "eew",
-                        "data": filtered[0] if filtered else resp[0],
-                    }
-                )
+                await self._handle({
+                    "type": "eew",
+                    "data": filtered[0] if filtered else resp[0],
+                })
 
-            return True
         except RuntimeError:
             self.client.retry_backoff += 1
+            return False
 
-        return False
+        return True
 
     async def _websocket_update_data(self, subscrib_service: list) -> bool:
         """Perform WebSocket update data."""
@@ -221,7 +222,6 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 )
                 _LOGGER.info("WebSocket fetching data recovered")
 
-            return True
         except (ConnectionError, RuntimeError) as ex:
             self.client.use_http_fallback = True
             await self.server_status_event(
@@ -231,8 +231,9 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             )
             self.client.retry_backoff += 1
             _LOGGER.warning("WebSocket error: %s, falling back to HTTP", str(ex))
+            return False
 
-        return False
+        return True
 
     async def _handle(self, resp: dict[str, Any] | None) -> None:
         """Handle incoming WebSocket messages based on type."""

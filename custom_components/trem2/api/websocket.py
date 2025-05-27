@@ -22,7 +22,7 @@ from aiohttp import (
 from aiohttp.hdrs import USER_AGENT
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import HomeAssistantError
 
 from ..const import HA_USER_AGENT, WS_URLS
 
@@ -170,7 +170,10 @@ class ExpTechWSClient:
                 autoping=False,
             )
         except WSServerHandshakeError as err:
-            raise ConfigEntryNotReady from err
+            hass = self.state.hass
+            # entry_id = hass.config_entry.entry_id
+            # hass.async_create_task(hass.config_entries.async_reload(entry_id))
+            raise HomeAssistantError from err
 
         # Initialize background tasks and verify
         self.initialize_background_tasks()
@@ -376,7 +379,7 @@ class ExpTechWSClient:
                 self.logger.debug("Task exception retrieval was cancelled (Home Assistant is stopping)")
                 return
             except Exception as ex:
-                self.logger.error("Error retrieving task exception: %s", ex, exc_info=True)
+                self.logger.error("Error retrieving task exception: %s", ex)
                 return
 
             if exc:

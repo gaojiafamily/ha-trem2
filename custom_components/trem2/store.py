@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-import re
-
 from logging import Logger
-from typing import Any, TYPE_CHECKING
+import re
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -56,7 +55,7 @@ class Trem2Store:
         if data:
             try:
                 cache: list[dict[str, Any]] = self.coordinator_data["recent"]["cache"]
-                seen = set((d["id"], d.get("serial", "")) for d in cache)
+                seen = {(d["id"], d.get("serial", "")) for d in cache}
                 key = (data["id"], data.get("serial", ""))
                 if key in seen:
                     return False
@@ -109,7 +108,7 @@ class Trem2Store:
 
             # Check earthquake data if not exist
             cache: list[dict[str, Any]] = self.coordinator_data["report"]["cache"]
-            seen = set(d["id"] for d in cache)
+            seen = {d["id"] for d in cache}
             if data["id"] in seen:
                 return False
 
