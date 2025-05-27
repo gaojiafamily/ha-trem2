@@ -3,8 +3,9 @@
 from datetime import UTC
 from zoneinfo import ZoneInfo
 
-from homeassistant.const import ATTR_LATITUDE, ATTR_LOCATION, ATTR_LONGITUDE, Platform
 from aiohttp import ClientTimeout
+
+from homeassistant.const import ATTR_LATITUDE, ATTR_LOCATION, ATTR_LONGITUDE, Platform
 
 # Initialize
 DEFAULT_NAME = "TREM2"

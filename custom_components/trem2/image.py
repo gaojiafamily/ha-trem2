@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-
 from pathlib import Path
-from pyvips import Image
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from pyvips import Image
 import voluptuous as vol
 
 from homeassistant.components.image import ImageEntity, ImageEntityDescription
@@ -20,15 +19,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback, async_get_current_platform
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_COUNTY,
-    ATTR_ID,
-    ATTRIBUTION,
-    DOMAIN,
-    MANUFACTURER,
-    OFFICIAL_URL,
-    __version__,
-)
+from .const import ATTR_COUNTY, ATTR_ID, ATTRIBUTION, DOMAIN, MANUFACTURER, OFFICIAL_URL, __version__
 from .core.earthquake import get_calculate_intensity, intensity_to_text, round_intensity
 from .core.map import draw as draw_isoseismal_map
 from .runtime import Trem2ImageData
@@ -185,10 +176,7 @@ class MonitoringImage(ImageEntity):
             match eq_data:
                 case {"list2": intensitys}:
                     self.data.intensitys = intensitys
-                    self.data.attr_value = {
-                        ATTR_COUNTY[k]: intensity_to_text(v)
-                        for k, v in intensitys.items()  #
-                    }
+                    self.data.attr_value = {ATTR_COUNTY[k]: intensity_to_text(v) for k, v in intensitys.items()}
 
                 case {"eq": eq_info}:
                     self.data.intensitys = get_calculate_intensity(eq_info)
@@ -219,14 +207,14 @@ class MonitoringImage(ImageEntity):
             svg_byte = svg_cont.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
 
             # Convert the SVG bytes to PNG using pyvips
-            svg_data: Image = await asyncio.to_thread(  # type: ignore
+            svg_data: Image = await asyncio.to_thread(  # type: ignore  # noqa: PGH003
                 Image.new_from_buffer,
                 svg_byte,
                 "",
             )
 
             # Storing the PNG to image
-            self.data.image = await asyncio.to_thread(  # type: ignore
+            self.data.image = await asyncio.to_thread(  # type: ignore  # noqa: PGH003
                 svg_data.write_to_buffer,
                 ".png",
             )

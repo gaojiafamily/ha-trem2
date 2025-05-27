@@ -5,23 +5,15 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from homeassistant.components.select import (
-    SelectEntity,
-    SelectEntityDescription,
-)
+from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    DOMAIN,
-    REPORT_ICON,
-    MANUFACTURER,
-    __version__,
-)
+from .const import DOMAIN, MANUFACTURER, REPORT_ICON, __version__
 
 if TYPE_CHECKING:
     from .runtime import Trem2RuntimeData
@@ -106,7 +98,7 @@ class ReportSelect(SelectEntity):
         current_index = options.index(self._attr_current_option)
         new_index = current_index + offset
         if cycle:
-            new_index = new_index % len(options)
+            new_index %= len(options)
         elif new_index < 0:
             new_index = 0
         elif new_index >= len(options):

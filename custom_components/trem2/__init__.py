@@ -13,19 +13,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers.storage import Store
 
-from .const import (
-    CONF_AGREE,
-    DEFAULT_NAME,
-    DOMAIN,
-    PLATFORMS,
-    STARTUP,
-    STORAGE_EEW,
-    STORAGE_REPORT,
-)
+from .const import CONF_AGREE, DEFAULT_NAME, DOMAIN, PLATFORMS, STARTUP, STORAGE_EEW, STORAGE_REPORT
 from .runtime import Trem2RuntimeData
 from .services import async_register_services
 from .update_coordinator import Trem2UpdateCoordinator
-
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -204,15 +195,13 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: Trem2ConfigEntry
 
     # Unload platforms
     unload_ok = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(
-                    config_entry,
-                    platform,
-                )
-                for platform in config_entry.runtime_data.platforms
-            ]
-        )
+        await asyncio.gather(*[
+            hass.config_entries.async_forward_entry_unload(
+                config_entry,
+                platform,
+            )
+            for platform in config_entry.runtime_data.platforms
+        ])
     )
 
     if unload_ok:

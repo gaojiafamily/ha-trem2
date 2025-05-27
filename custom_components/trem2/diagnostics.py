@@ -66,9 +66,6 @@ async def _async_get_diagnostics(hass: HomeAssistant, config_entry: Trem2ConfigE
             image_entity: MonitoringImage = entities["monitoring"]
             diag_data[config_entry.entry_id] = {"intensitys": image_entity.data.intensitys}
     except (AttributeError, KeyError, RuntimeError) as e:
-        diag_data["error"] = "{e}: {reason}".format(
-            e=type(e).__name__,
-            reason=repr(e),
-        )
+        diag_data["error"] = f"{type(e).__name__}: {e!r}"
 
     return diag_data

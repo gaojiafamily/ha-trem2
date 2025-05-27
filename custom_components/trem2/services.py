@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import cast, TYPE_CHECKING
-
 import logging
+from typing import TYPE_CHECKING, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, CONF_SERVICE_DATA, CONF_URL, EntityCategory
@@ -22,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
 
 
-async def async_register_services(hass: HomeAssistant) -> bool:  # noqa: C901
+async def async_register_services(hass: HomeAssistant) -> bool:
     """Register services for the custom component."""
 
     async def async_handle_simulate_earthquake(call: ServiceCall):
