@@ -171,18 +171,15 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                     "Update failed, next attempt in %s seconds",
                     new_interval.total_seconds(),
                 )
-                raise UpdateFailed()
+                raise UpdateFailed
 
         return self.store.coordinator_data
 
     async def _http_update_data(self) -> bool:
         """Preform Http update data."""
         try:
-            resp = await self.client.http.fetch_eew()
-            if resp is None:
-                raise RuntimeError("An error occurred during message handling")
-
             # Handle incoming Http messages
+            resp = await self.client.http.fetch_eew()
             if resp:
                 filtered = [d for d in resp if d.get("author") == "cwa"]
                 await self._handle({

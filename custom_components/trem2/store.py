@@ -210,6 +210,7 @@ class Trem2Store:
                 data.setdefault("author", "cwa")
             data.setdefault("author", "ExpTechTW")
 
-        self.coordinator_data["report"]["recent"] = report_data[0]
-        self.coordinator_data["report"]["cache"] = report_data
-        self.coordinator_data["report"]["fetch_time"] = datetime.now().timestamp()
+        if report_data:
+            self.coordinator_data["report"]["recent"] = report_data[0]
+            self.coordinator_data["report"]["cache"] = report_data
+            self.coordinator_data["report"]["fetch_time"] = datetime.now().timestamp()

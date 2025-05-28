@@ -54,6 +54,7 @@ class ExpTechHTTPClient:
             list | None: The received message(s) or None if not available.
 
         """
+        resp = None
         start = monotonic()
 
         if self.base_url is None:
@@ -87,13 +88,15 @@ class ExpTechHTTPClient:
 
                 resp = await response.json()
                 self.latency = abs(monotonic() - start)
-                return resp
+            else:
+                self.logger.error(
+                    "Failed fetching data from HTTP API(%s), (HTTP Status Code = %s)",
+                    self.api_node,
+                    response.status,
+                )
 
-            self.logger.error(
-                "Failed fetching data from HTTP API(%s), (HTTP Status Code = %s)",
-                self.api_node,
-                response.status,
-            )
+            if resp is not None:
+                return resp
 
         raise RuntimeError("An error occurred during message reception")
 
