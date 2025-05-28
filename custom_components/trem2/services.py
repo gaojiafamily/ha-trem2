@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID, CONF_SERVICE_DATA, CONF_URL, EntityCategory
 from homeassistant.core import EventOrigin, HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import entity_registry
+from homeassistant.helpers import entity_registry as er
 
 from .const import ATTR_API_NODE, DOMAIN
 
@@ -32,7 +32,7 @@ async def async_register_services(hass: HomeAssistant) -> bool:
         if not entity_id:
             raise HomeAssistantError("Entity ID is required")
 
-        er = entity_registry.async_get(hass)
+        er = er.async_get(hass)
         entry = er.async_get(entity_id)
 
         if not entry or not entry.config_entry_id:
@@ -62,7 +62,7 @@ async def async_register_services(hass: HomeAssistant) -> bool:
         if not entity_id:
             raise HomeAssistantError("Entity ID is required")
 
-        er = entity_registry.async_get(hass)
+        er = er.async_get(hass)
         entry = er.async_get(entity_id)
 
         if not entry or not entry.config_entry_id:

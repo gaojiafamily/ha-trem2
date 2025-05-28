@@ -257,6 +257,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
             case "report":
                 data: dict[str, Any] = resp.get("data", {})
+                _LOGGER.warning("Received report data: %s", data)
                 flag = await self.store.load_report_data(data)
 
                 # Event bus fired
@@ -268,9 +269,9 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                     )
 
             case "intensity":
-                intensity_data: dict = resp.get("data", {})
-                self.store.coordinator_data["recent"]["intensity"] = intensity_data
-                _LOGGER.debug("Intensity data: %s", intensity_data)
+                resp.pop("type", None)
+                self.store.coordinator_data["recent"]["intensity"] = resp
+                _LOGGER.debug("Intensity data: %s", resp)
 
             case "tsunami":
                 tsunami_data: dict = resp.get("data", {})
