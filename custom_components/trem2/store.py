@@ -68,6 +68,11 @@ class Trem2Store:
             self.coordinator_data["recent"]["earthquake"] = data
 
             # Stored to earthquake cache
+            self.logger.warning(
+                "Stored earthquake data: %s, %s",
+                data.get("id", "Unknown"),
+                data,
+            )
             cache.append(data)
             cache = cache[-10:]
             await self.config_entry.runtime_data.recent_sotre.async_save(
@@ -144,12 +149,17 @@ class Trem2Store:
                     report_data = data
                     break
 
-        # Check if the report data is more recent than the earthquake data
-        if report_data.get("time", 1) > eew_data.get("time", 0) or report_id:
+        # If the report ID matches the earthquake data, return the earthquake data
+        if report_id is not None and report_id == eew_data.get("id"):
+            return eew_data
+
+        # If the report data is newer than the earthquake data, update the earthquake data
+        if report_data.get("time", 1) > eew_data.get("time", 0) or report_id != eew_data.get("id"):
             eew_data["id"] = report_data.get("id")
+            eew_data["author"] = report_data.get("author")
             eew_data.pop("serial", None)
             eq: dict = eew_data.get("eq", {})
-            for key in ("author", "lat", "lon", "depth", "loc", "mag", "time"):
+            for key in ("lat", "lon", "depth", "loc", "mag", "time"):
                 eq[key] = report_data.get(key)
             eq["max"] = report_data.get("int")
             eew_data["eq"] = eq
@@ -158,7 +168,6 @@ class Trem2Store:
             eew_data["time"] = eq.get("time")
             eew_data["md5"] = report_data.get("md5")
 
-        # Otherwise, return the notification data
         return eew_data
 
     async def load_intensitys(self, intensitys: dict | None = None, country_only=True) -> dict:
@@ -201,6 +210,7 @@ class Trem2Store:
                 data.setdefault("author", "cwa")
             data.setdefault("author", "ExpTechTW")
 
-        self.coordinator_data["report"]["recent"] = report_data[0]
-        self.coordinator_data["report"]["cache"] = report_data
-        self.coordinator_data["report"]["fetch_time"] = datetime.now().timestamp()
+        if report_data:
+            self.coordinator_data["report"]["recent"] = report_data[0]
+            self.coordinator_data["report"]["cache"] = report_data
+            self.coordinator_data["report"]["fetch_time"] = datetime.now().timestamp()
