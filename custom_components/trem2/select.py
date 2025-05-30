@@ -57,7 +57,7 @@ class ReportSelect(SelectEntity):
     ) -> None:
         """Initialize the Select."""
         self._attr_device_info = DeviceInfo(
-            identifiers={(config_entry.domain, config_entry.options.get(CONF_EMAIL, "user"))},
+            identifiers={(config_entry.domain, config_entry.entry_id)},
             name=config_entry.options.get(CONF_EMAIL, config_entry.title),
             manufacturer=MANUFACTURER,
             model="ExpTechTW TREM",

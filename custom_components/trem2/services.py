@@ -32,8 +32,8 @@ async def async_register_services(hass: HomeAssistant) -> bool:
         if not entity_id:
             raise HomeAssistantError("Entity ID is required")
 
-        er = er.async_get(hass)
-        entry = er.async_get(entity_id)
+        entity = er.async_get(hass)
+        entry = entity.async_get(entity_id)
 
         if not entry or not entry.config_entry_id:
             raise HomeAssistantError(f"Entity ID {entity_id} not found")
@@ -62,8 +62,8 @@ async def async_register_services(hass: HomeAssistant) -> bool:
         if not entity_id:
             raise HomeAssistantError("Entity ID is required")
 
-        er = er.async_get(hass)
-        entry = er.async_get(entity_id)
+        entity = er.async_get(hass)
+        entry = entity.async_get(entity_id)
 
         if not entry or not entry.config_entry_id:
             raise HomeAssistantError(f"Entity ID {entity_id} not found")

@@ -7,8 +7,8 @@
       "reauth_failed": "\u91cd\u65b0\u9a57\u8b49\u5931\u6557"
     },
     "error": {
-      "invalid_auth": "\u5e33\u865f\u6216\u5bc6\u78bc\u4e0d\u6b63\u78ba",
       "cannot_connect": "\u7121\u6cd5\u9023\u7dda\u81f3 ExpTech \u4f3a\u670d\u5668",
+      "invalid_auth": "\u5e33\u865f\u6216\u5bc6\u78bc\u4e0d\u6b63\u78ba",
       "unknown": "\u672a\u77e5\u7684\u932f\u8aa4"
     },
     "step": {
@@ -32,8 +32,10 @@
   },
   "options": {
     "error": {
-      "invalid_auth": "\u5e33\u865f\u6216\u5bc6\u78bc\u4e0d\u6b63\u78ba",
+      "already_user_entry": "\u9805\u76ee ExpTech User \u5df2\u7d93\u5b58\u5728\uff0c\u60a8\u7121\u6cd5\u518d\u65b0\u589e\u53e6\u4e00\u500b",
+      "already_vip_entry": "\u9805\u76ee ExpTech VIP \u5df2\u7d93\u5b58\u5728\uff0c\u60a8\u7121\u6cd5\u518d\u65b0\u589e\u53e6\u4e00\u500b",
       "cannot_connect": "\u7121\u6cd5\u9023\u7dda\u81f3 ExpTech \u4f3a\u670d\u5668",
+      "invalid_auth": "\u5e33\u865f\u6216\u5bc6\u78bc\u4e0d\u6b63\u78ba",
       "unknown": "\u672a\u77e5\u7684\u932f\u8aa4"
     },
     "step": {

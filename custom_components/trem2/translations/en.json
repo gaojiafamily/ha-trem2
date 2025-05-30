@@ -7,8 +7,8 @@
       "reauth_failed": "Re-authentication failed."
     },
     "error": {
-      "invalid_auth": "The account does not exist or the password is invalid.",
       "cannot_connect": "Unable to connect to the ExpTech server.",
+      "invalid_auth": "The account does not exist or the password is invalid.",
       "unknown": "Unexpected error."
     },
     "step": {
@@ -40,8 +40,10 @@
   },
   "options": {
     "error": {
-      "invalid_auth": "The account does not exist or the password is invalid.",
+      "already_user_entry": "An “ExpTech User” entry already exists. You cannot add another one.",
+      "already_vip_entry": "An “ExpTech VIP” entry already exists. You cannot add another one.",
       "cannot_connect": "Unable to connect to the ExpTech server.",
+      "invalid_auth": "The account does not exist or the password is invalid.",
       "unknown": "Unexpected error."
     },
     "step": {

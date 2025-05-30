@@ -88,7 +88,7 @@ class NotificationSensor(SensorEntity):
     ) -> None:
         """Initialize the sensor."""
         self._attr_device_info = DeviceInfo(
-            identifiers={(config_entry.domain, config_entry.options.get(CONF_EMAIL, "user"))},
+            identifiers={(config_entry.domain, config_entry.entry_id)},
             name=config_entry.options.get(CONF_EMAIL, config_entry.title),
             manufacturer=MANUFACTURER,
             model="ExpTechTW TREM",
@@ -210,7 +210,7 @@ class DiagnosticsSensor(SensorEntity):
     ) -> None:
         """Initialize the sensor."""
         self._attr_device_info = DeviceInfo(
-            identifiers={(config_entry.domain, config_entry.options.get(CONF_EMAIL, "user"))},
+            identifiers={(config_entry.domain, config_entry.entry_id)},
             name=config_entry.options.get(CONF_EMAIL, config_entry.title),
             manufacturer=MANUFACTURER,
             model="ExpTechTW TREM",
