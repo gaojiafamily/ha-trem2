@@ -8,14 +8,16 @@ from aiohttp import ClientTimeout
 from homeassistant.const import ATTR_LATITUDE, ATTR_LOCATION, ATTR_LONGITUDE, Platform
 
 # Initialize
+BUTTON_ICON = "mdi:file-document-refresh"
 DEFAULT_NAME = "TREM2"
 DEFAULT_ICON = "mdi:waveform"
-REPORT_ICON = "mdi:information-box"
+REPORT_ICON = "mdi:file-document"
 DOMAIN = "trem2"
 INT_DEFAULT_ICON = "mdi:circle-outline"
 INT_TRIGGER_ICON = "mdi:alert-circle-outline"
 PLATFORMS = [
     Platform.BINARY_SENSOR,
+    Platform.BUTTON,
     Platform.IMAGE,
     Platform.SELECT,
     Platform.SENSOR,

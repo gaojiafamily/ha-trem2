@@ -51,9 +51,9 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER,
             ),
             websocket=ExpTechWSClient(
+                config_entry,
                 hass,
                 session,
-                _LOGGER,
             ),
         )
         self.config_entry = config_entry
@@ -144,15 +144,13 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         ws_state = self.client.websocket.state
         if ws_state.is_running and ws_state.subscrib_service:
             flag = await self._websocket_update_data(ws_state.subscrib_service)
+            self.client.retry_backoff = 1 if flag else self.client.retry_backoff + 1
             use_http_fetch = self.client.use_http_fallback
 
         # Fetch data from http
         if use_http_fetch:
             flag = await self._http_update_data()
-
-        # Reset retry backoff if data is received
-        if flag and not use_http_fetch:
-            self.client.retry_backoff = 1
+            self.client.retry_backoff = 1 if flag else self.client.retry_backoff + 1
 
         # Retry backoff if no data
         match self.client.retry_backoff:
@@ -254,7 +252,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
             case "report":
                 data: dict[str, Any] = resp.get("data", {})
-                _LOGGER.warning("Received report data: %s", data)
+                _LOGGER.warning("Received report data: %s", data)  # TODO: 記得移除
                 flag = await self.store.load_report_data(data)
 
                 # Event bus fired

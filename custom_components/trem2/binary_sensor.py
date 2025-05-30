@@ -94,7 +94,7 @@ class IntensityBinarySensor(BinarySensorEntity):
     ) -> None:
         """Initialize the binary sensor."""
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, config_entry.options.get(CONF_EMAIL, "user"))},
+            identifiers={(DOMAIN, config_entry.entry_id)},
             name=config_entry.options.get(CONF_EMAIL, config_entry.title),
             manufacturer=MANUFACTURER,
             model="ExpTechTW TREM",

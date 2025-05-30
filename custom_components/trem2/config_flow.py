@@ -164,30 +164,53 @@ class TREM2FlowHandler(ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(OptionsFlow):
     """Handle options flow changes."""
 
+    async def async_step_form(self, err: dict | None = None):
+        """Handle the initial step."""
+        if err is None:
+            err = {}
+        return self.async_show_form(
+            step_id=SOURCE_INIT,
+            data_schema=self.add_suggested_values_to_schema(
+                vol.Schema({
+                    vol.Optional(CONF_EMAIL): str,
+                    vol.Optional(CONF_PASSWORD): str,
+                    vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
+                    vol.Required(CONF_AGREE): bool,
+                }),
+                self.config_entry.options,
+            ),
+            errors=err,
+        )
+
     async def async_step_init(self, user_input=None):
         """Manage the options."""
+
         if user_input is None:
-            return self.async_show_form(
-                step_id=SOURCE_INIT,
-                data_schema=self.add_suggested_values_to_schema(
-                    vol.Schema({
-                        vol.Optional(CONF_EMAIL): str,
-                        vol.Optional(CONF_PASSWORD): str,
-                        vol.Required(CONF_PROVIDER): vol.In([x[0] for x in PROVIDER_OPTIONS]),
-                        vol.Required(CONF_AGREE): bool,
-                    }),
-                    self.config_entry.options,
-                ),
-            )
+            return await self.async_step_form()
 
         # ExpTech account and password validation
         if CONF_EMAIL in user_input:
             return await self.async_step_external_auth(user_input)
 
-        self.hass.config_entries.async_update_entry(self.config_entry, title="ExpTech User")
+        # If unique id not already exist.
+        domain = self.config_entry.domain
+        new_unique_id = domain
+        for entry in self.hass.config_entries.async_entries(domain):
+            if entry.unique_id == new_unique_id and entry.entry_id != self.config_entry.entry_id:
+                err = {"base": "already_user_entry"}
+                return await self.async_step_form(err)
 
-        # Create entry if it does not already exist
-        return self.async_create_entry(title=self.config_entry.title, data=user_input)
+        # Update entry and reload
+        self.hass.config_entries.async_update_entry(
+            self.config_entry,
+            title="ExpTech User",
+            unique_id=new_unique_id,
+        )
+
+        return self.async_create_entry(
+            title=self.config_entry.title,
+            data=user_input,
+        )
 
     async def async_step_external_auth(self, user_input=None):
         """Verify ExpTech certification."""
@@ -198,9 +221,26 @@ class OptionsFlowHandler(OptionsFlow):
         session = async_get_clientsession(self.hass)
         result = await _verify(session, user_input)
         if result["success"]:
+            # If unique id not already exist.
+            domain = self.config_entry.domain
+            new_unique_id = f"{domain}_{result[CONF_API_TOKEN]}"
+            for entry in self.hass.config_entries.async_entries(domain):
+                if entry.unique_id == new_unique_id and entry.entry_id != self.config_entry.entry_id:
+                    err = {"base": "already_vip_entry"}
+                    return await self.async_step_form(err)
+
+            # Update entry and reload
             user_input[CONF_API_TOKEN] = result[CONF_API_TOKEN]
-            self.hass.config_entries.async_update_entry(self.config_entry, title="ExpTech VIP")
-            return self.async_create_entry(title=self.config_entry.title, data=user_input)
+            self.hass.config_entries.async_update_entry(
+                self.config_entry,
+                title="ExpTech VIP",
+                unique_id=new_unique_id,
+            )
+
+            return self.async_create_entry(
+                title=self.config_entry.title,
+                data=user_input,
+            )
 
         # Request to re-enter ExpTech account and password
         return self.async_show_form(

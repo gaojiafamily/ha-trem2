@@ -68,7 +68,7 @@ class Trem2Store:
             self.coordinator_data["recent"]["earthquake"] = data
 
             # Stored to earthquake cache
-            self.logger.warning(
+            self.logger.warning(  # TODO: 記得移除
                 "Stored earthquake data: %s, %s",
                 data.get("id", "Unknown"),
                 data,
