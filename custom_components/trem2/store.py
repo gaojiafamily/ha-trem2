@@ -77,8 +77,9 @@ class Trem2Store:
                 self.coordinator_data["recent"],
             )
 
-            # Abort earthquake simulating
+            # Abort earthquake simulating and Update coordinator data
             self.coordinator_data["recent"]["simulating"] = {}
+            coordinator.async_set_updated_data(self.coordinator_data)
 
         return True
 
@@ -126,6 +127,9 @@ class Trem2Store:
             await self.config_entry.runtime_data.report_store.async_save(
                 self.coordinator_data["report"],
             )
+
+            # Update coordinator data
+            coordinator.async_set_updated_data(self.coordinator_data)
 
         return True
 
@@ -279,3 +283,6 @@ class Trem2Store:
             self.coordinator_data["report"]["recent"] = report_data[0]
             self.coordinator_data["report"]["cache"] = report_data
             self.coordinator_data["report"]["fetch_time"] = datetime.now().timestamp()
+
+            # Update coordinator data
+            coordinator.async_set_updated_data(self.coordinator_data)

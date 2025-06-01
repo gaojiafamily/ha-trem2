@@ -139,10 +139,10 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             await self.client.websocket.disconnect()
 
         await self.config_entry.runtime_data.recent_sotre.async_save(
-            self.store.coordinator_data["recent"],
+            self.data["recent"],
         )
         await self.config_entry.runtime_data.report_store.async_save(
-            self.store.coordinator_data["report"],
+            self.data["report"],
         )
 
     async def _async_update_data(self):
@@ -275,12 +275,14 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 resp.pop("type", None)
                 self.store.coordinator_data["recent"]["intensity"] = resp
                 _LOGGER.debug("Intensity data: %s", resp)
+                self.async_set_updated_data(self.store.coordinator_data)
 
             case "tsunami":
                 tsunami_data: dict = resp.get("data", {})
                 tsunami_data.setdefault("time", resp.get("time", 0))
                 self.store.coordinator_data["recent"]["tsunami"] = tsunami_data
                 _LOGGER.debug("Tsunami Data: %s", tsunami_data)
+                self.async_set_updated_data(self.store.coordinator_data)
 
     async def server_status_event(self, **kwargs):
         """Server status update trigger event."""

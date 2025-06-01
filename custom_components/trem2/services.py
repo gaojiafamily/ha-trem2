@@ -44,14 +44,20 @@ async def async_register_services(hass: HomeAssistant) -> bool:
             raise HomeAssistantError("Do not use this service for diagnostic entities")
 
         update_coordinator = config_entry.runtime_data.coordinator
-        update_coordinator.data["recent"]["simulating"] = data
+        coordinator_data = update_coordinator.store.coordinator_data
+        coordinator_data["recent"]["simulating"] = data
 
         if "eq" in data:
             _LOGGER.warning("Start earthquake simulation")
-            hass.bus.fire(f"{DOMAIN}_notification", {"earthquake": data}, origin=EventOrigin.local)
             _LOGGER.debug("Simulating data: %s", data)
         else:
             _LOGGER.warning("Abort earthquake simulation")
+
+        # Update coordinator data
+        update_coordinator.async_set_updated_data(coordinator_data)
+
+        # Return
+        hass.bus.fire(f"{DOMAIN}_notification", {"earthquake": data}, origin=EventOrigin.local)
 
     async def async_handle_set_http_node(call: ServiceCall):
         """Set the node specified by the user."""
