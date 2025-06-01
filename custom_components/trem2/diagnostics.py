@@ -12,7 +12,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
 if TYPE_CHECKING:
-    from .image import MonitoringImage
     from .runtime import Trem2RuntimeData
     from .update_coordinator import Trem2UpdateCoordinator
 
@@ -60,11 +59,6 @@ async def _async_get_diagnostics(hass: HomeAssistant, config_entry: Trem2ConfigE
             diag_data["server_status"] = await update_coordinator.client.server_status()
             diag_data["recent"] = update_coordinator.data["recent"]
             diag_data["report"] = update_coordinator.data["report"]
-
-        entities = hass.data[config_entry.domain][config_entry.entry_id]
-        if "monitoring" in entities:
-            image_entity: MonitoringImage = entities["monitoring"]
-            diag_data[config_entry.entry_id] = {"intensitys": image_entity.data.intensitys}
     except (AttributeError, KeyError, RuntimeError) as e:
         diag_data["error"] = f"{type(e).__name__}: {e!r}"
 

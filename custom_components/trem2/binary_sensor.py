@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
+from math import ceil
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -28,7 +30,6 @@ from .const import (
     INT_DEFAULT_ICON,
     INT_TRIGGER_ICON,
     MANUFACTURER,
-    ZIP3_TOWN,
     __version__,
 )
 
@@ -121,29 +122,39 @@ class IntensityBinarySensor(BinarySensorEntity):
         """Unload when this Entity has been remove from HA."""
         await super().async_will_remove_from_hass()
 
-    def convert_zip3_town(self) -> dict:
-        """Convert ZIP Code to Township name."""
-        intensity_data: dict = self.coordinator.data["recent"]["intensity"]
+    async def async_update(self):
+        """Perform update data."""
+        if not self.coordinator.last_update_success:
+            return
 
-        if "area" in intensity_data:
-            area = {}
-            for i, j in intensity_data.items():
-                town = []
-                for zipcode in j:
-                    if zipcode in ZIP3_TOWN:
-                        town.extend(ZIP3_TOWN[zipcode])
-                area[i] = town
+        if self.coordinator.data:
+            intensity_data: dict = self.coordinator.data["recent"]["intensity"]
+            intensity_time = int(intensity_data.get("id", 0))
+            dt = datetime.now()
+            current_time = ceil(dt.timestamp() * 1000)
+            diff_time = abs(current_time - intensity_time)
 
-            return {
-                ATTR_ID: "-".join([
-                    str(intensity_data.get("id") or ""),
-                    str(intensity_data.get("serial") or ""),
-                ]),
-                ATTR_AUTHOR: intensity_data["author"],
-                ATTR_LIST: area,
-            }
+            # Update state
+            if "area" in intensity_data and diff_time < 300:
+                self._icon = INT_TRIGGER_ICON
+                self._state = True
+            else:
+                self._icon = INT_DEFAULT_ICON
+                self._state = False
 
-        return {}
+            # Update attributes
+            _, lists = await self.coordinator.store.load_intensitys()
+            if lists:
+                self._attr_value = {
+                    ATTR_ID: "-".join([
+                        str(intensity_data.get("id") or ""),
+                        str(intensity_data.get("serial") or ""),
+                    ]),
+                    ATTR_AUTHOR: intensity_data["author"],
+                    ATTR_LIST: lists,
+                }
+
+            self.async_write_ha_state()
 
     @property
     def available(self):
@@ -185,20 +196,7 @@ class IntensityBinarySensor(BinarySensorEntity):
     @callback
     def _update_callback(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self.coordinator.last_update_success:
-            return
-
-        intensity_data = self.coordinator.data["recent"]["intensity"]
-
-        if "area" in intensity_data:
-            self._icon = INT_TRIGGER_ICON
-        else:
-            self._icon = INT_DEFAULT_ICON
-
-        self._state = "area" in intensity_data
-        self._attr_value = self.convert_zip3_town()
-
-        self.async_write_ha_state()
+        self.async_schedule_update_ha_state(force_refresh=True)
 
     async def async_handle_set_ws_node(self, **kwargs):
         """Set the node specified by the user."""

@@ -451,7 +451,7 @@ def _draw_epicenter(svg_parts: list, eq_data: dict, eq_id, county_name, max_inte
                 OFFSHORE_ZONES.get(
                     offshore_area,
                     OFFSHORE_ZONES["Sea"],
-                )
+                ),
             )
         else:
             epicenter_x, epicenter_y = latlon_to_svg(epi_latlong)
@@ -496,7 +496,7 @@ def _draw_epicenter(svg_parts: list, eq_data: dict, eq_id, county_name, max_inte
                     ),
                 )
             ),
-        )
+        ),
     )
 
 

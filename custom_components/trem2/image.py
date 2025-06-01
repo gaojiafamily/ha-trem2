@@ -162,67 +162,73 @@ class MonitoringImage(ImageEntity):
         selected = getattr(self.config_entry.runtime_data, "selected_option", None)
         eq_data = await self.coordinator.store.load_eew_data(selected)
         if self.coordinator.data["recent"]["simulating"]:
-            eq_id = f"{eq_data['id']}_simulating"
+            eq_id = f"#{eq_data['id']}#"
         else:
-            eq_id = eq_data["id"]
+            eq_id = eq_data.get("id", self.data.image_id)
 
         # Get the latest notification data
         try:
             # Check state change
-            if self.data.image_id == eq_id:
-                return
+            if self.data.image_id != eq_id:
+                self.data.intensitys = None
 
-            # Calculate the intensity
-            match eq_data:
-                case {"list2": intensitys}:
-                    self.data.intensitys = intensitys
-                    self.data.attr_value = {ATTR_COUNTY[k]: intensity_to_text(v) for k, v in intensitys.items()}
+                # Calculate the intensity
+                match eq_data:
+                    case {"intensity": intensitys}:
+                        self.data.intensitys = intensitys
+                        self.data.attr_value = eq_data["list"]
 
-                case {"eq": eq_info}:
-                    self.data.intensitys = get_calculate_intensity(eq_info)
-                    self.data.attr_value = {
-                        ATTR_COUNTY.get(k, k): intensity_to_text(v)
-                        for k, v in self.data.intensitys.items()
-                        if round_intensity(v) > 0
-                    }
+                    case {"eq": eq_info}:
+                        self.data.intensitys = get_calculate_intensity(eq_info)
+                        self.data.attr_value = {
+                            ATTR_COUNTY.get(k, k): intensity_to_text(v)
+                            for k, v in self.data.intensitys.items()
+                            if round_intensity(v) > 0
+                        }
 
-            # QR Code data
-            assets_path = f"custom_components/{DOMAIN}/assets"
-            bg_path = self.hass.config.path(f"{assets_path}/brand.svg")
-            url = OFFICIAL_URL
-            if "md5" in eq_data:
-                bg_path = self.hass.config.path(f"{assets_path}/cwa_logo.svg")
-                url = f"https://www.cwa.gov.tw/V8/C/E/EQ/EQ{eq_id}.html"
+            # TODO: binary sensor is on 時，繪製震動速報結果
+            entitys = self.hass.data[DOMAIN][self.config_entry.entry_id]
+            if "intensity" in entitys and entitys["intensity"].is_on:
+                pass
 
-            # Draw the isoseismal map
-            svg_cont = draw_isoseismal_map(
-                self.data.intensitys,
-                eq_data,
-                eq_id,
-                bg_path,
-                url,
-            )
+            if self.data.intensitys:
+                # QR Code data
+                assets_path = f"custom_components/{DOMAIN}/assets"
+                bg_path = self.hass.config.path(f"{assets_path}/brand.svg")
+                url = OFFICIAL_URL
+                if "md5" in eq_data:
+                    bg_path = self.hass.config.path(f"{assets_path}/cwa_logo.svg")
+                    url = f"https://www.cwa.gov.tw/V8/C/E/EQ/EQ{eq_id}.html"
 
-            # Remove BOM and decode the SVG data
-            svg_byte = svg_cont.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
+                # Draw the isoseismal map
+                svg_cont = draw_isoseismal_map(
+                    self.data.intensitys,
+                    eq_data,
+                    eq_id,
+                    bg_path,
+                    url,
+                )
 
-            # Convert the SVG bytes to PNG using pyvips
-            svg_data: Image = await asyncio.to_thread(  # type: ignore  # noqa: PGH003
-                Image.new_from_buffer,
-                svg_byte,
-                "",
-            )
+                # Remove BOM and decode the SVG data
+                svg_byte = svg_cont.lstrip().encode("utf-8").lstrip(b"\xef\xbb\xbf")
 
-            # Storing the PNG to image
-            self.data.image = await asyncio.to_thread(  # type: ignore  # noqa: PGH003
-                svg_data.write_to_buffer,
-                ".png",
-            )
-            self._attr_image_last_updated = dt_util.utcnow()
+                # Convert the SVG bytes to PNG using pyvips
+                svg_data: Image = await asyncio.to_thread(  # type: ignore  # noqa: PGH003
+                    Image.new_from_buffer,
+                    svg_byte,
+                    "",
+                )
 
-            # Update the _image_id
-            self.data.image_id = eq_id
-            self.data.attr_value[ATTR_ID] = eq_id
+                # Storing the PNG to image
+                self.data.image = await asyncio.to_thread(  # type: ignore  # noqa: PGH003
+                    svg_data.write_to_buffer,
+                    ".png",
+                )
+                self._attr_image_last_updated = dt_util.utcnow()
+
+                # Update the _image_id
+                self.data.image_id = eq_id
+                self.data.attr_value[ATTR_ID] = eq_id
         except TypeError as ex:
             _LOGGER.error("TypeError occurred while processing earthquake data: %s", ex)
         except AttributeError as ex:

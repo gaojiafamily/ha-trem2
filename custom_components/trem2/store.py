@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import ATTR_COUNTY
+from .const import ATTR_COUNTY, COUNTY_TOWN, ZIP3_TOWN
 from .core.earthquake import intensity_to_text
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ class Trem2Store:
         # Check earthquake data if not None
         if data:
             try:
-                cache: list[dict[str, Any]] = self.coordinator_data["recent"]["cache"]
+                cache: list[dict[str, Any]] = self.coordinator_data["recent"]["cache"].copy()
                 seen = {(d["id"], d.get("serial", "")) for d in cache}
                 key = (data["id"], data.get("serial", ""))
                 if key in seen:
@@ -63,18 +63,16 @@ class Trem2Store:
                 self.logger.error(e)
 
             # Stored earthquake data to runtime data
+            coordinator = self.config_entry.runtime_data.coordinator
             data.pop("type", None)
             data.setdefault("time", data.get("time", 0))
-            self.coordinator_data["recent"]["earthquake"] = data
+            provider = coordinator.conf.params.get("type")
+            if provider == "" or data.get("author") == provider:
+                self.coordinator_data["recent"]["earthquake"] = data
 
             # Stored to earthquake cache
-            self.logger.warning(  # TODO: 記得移除
-                "Stored earthquake data: %s, %s",
-                data.get("id", "Unknown"),
-                data,
-            )
-            cache.append(data)
-            cache = cache[-10:]
+            cache.insert(0, data)
+            self.coordinator_data["recent"]["cache"] = cache[-10:]
             await self.config_entry.runtime_data.recent_sotre.async_save(
                 self.coordinator_data["recent"],
             )
@@ -112,7 +110,7 @@ class Trem2Store:
             data.setdefault("author", "ExpTechTW")
 
             # Check earthquake data if not exist
-            cache: list[dict[str, Any]] = self.coordinator_data["report"]["cache"]
+            cache: list[dict[str, Any]] = self.coordinator_data["report"]["cache"].copy()
             seen = {d["id"] for d in cache}
             if data["id"] in seen:
                 return False
@@ -123,8 +121,8 @@ class Trem2Store:
             self.coordinator_data["report"]["recent"] = data
 
             # Stored to report cache
-            cache.append(data)
-            cache = cache[-5:]
+            cache.insert(0, data)
+            self.coordinator_data["report"]["cache"] = cache[-5:]
             await self.config_entry.runtime_data.report_store.async_save(
                 self.coordinator_data["report"],
             )
@@ -149,12 +147,15 @@ class Trem2Store:
                     report_data = data
                     break
 
-        # If the report ID matches the earthquake data, return the earthquake data
-        if report_id is not None and report_id == eew_data.get("id"):
-            return eew_data
+            # If the report ID matches the earthquake data, return the earthquake data
+            if report_id == eew_data.get("id"):
+                return eew_data
+        else:
+            report_id = eew_data.get("id")
 
         # If the report data is newer than the earthquake data, update the earthquake data
         if report_data.get("time", 1) > eew_data.get("time", 0) or report_id != eew_data.get("id"):
+            eew_data["intensity"], eew_data["list"] = await self.load_intensitys(eew_data, report_data)
             eew_data["id"] = report_data.get("id")
             eew_data["author"] = report_data.get("author")
             eew_data.pop("serial", None)
@@ -163,31 +164,95 @@ class Trem2Store:
                 eq[key] = report_data.get(key)
             eq["max"] = report_data.get("int")
             eew_data["eq"] = eq
-            eew_data["list"] = await self.load_intensitys(report_data.get("list", {}), False)
-            eew_data["list2"] = await self.load_intensitys(report_data.get("list", {}))
             eew_data["time"] = eq.get("time")
             eew_data["md5"] = report_data.get("md5")
 
         return eew_data
 
-    async def load_intensitys(self, intensitys: dict | None = None, country_only=True) -> dict:
-        """Get the latest intensity data."""
-        intensity_data = self.coordinator_data["recent"]["intensity"]
+    async def load_intensitys(
+        self,
+        eew: dict | None = None,
+        report: dict | None = None,
+    ) -> tuple[dict, dict]:
+        """Get the latest intensity data.
+
+        Returns
+        -------
+        intensity : dict
+            intensitys used for map drawing
+        lists : dict
+            intensitys used for listing attributes
+
+        """
+        if eew is None:
+            eew = {}
+
+        if report is None:
+            report = {}
+
+        eew_id = eew.get(id)
+        intensitys_data: dict = self.coordinator_data["recent"]["intensity"]
+        report_intensity: dict | None = report.get("list")
+        report_id = report.get("id")
+
+        # 當報表不同時，重設震度速報 ID
+        if eew_id != report_id:
+            intensitys_data.pop("id", None)
+
+        # Case 1: 比對震度速報和報表資料
+        intensitys_data.setdefault("id", report.get("trem"))
+        if report_intensity and intensitys_data.get("id") == report.get("trem"):
+            county_list = {v: k for k, v in ATTR_COUNTY.items()}
+            intensity = {county_list[county]: detail["int"] for county, detail in report_intensity.items()}
+            lists = {
+                key: intensity_to_text(details["int"])
+                for county, details in report_intensity.items()
+                for key in [county] + [f"{county}{town}" for town in details["town"]]
+            }
+
+            return intensity, lists
+
+        # Case 2: 使用震度速報資料為主
+        intensity = await self.convert_zip3_county(intensitys_data)
+        lists = await self.convert_zip3_town(intensitys_data)
+
+        return intensity, lists
+
+    async def convert_zip3_county(self, intensitys) -> dict:  # noqa: PLR6301
+        """Convert ZIP Code to county id."""
         result = {}
 
-        match (intensity_data, intensitys):
-            case (data, _) if data:
-                result = data
-            case (_, ints) if ints:
-                if country_only:
-                    county_list = {v: k for k, v in ATTR_COUNTY.items()}
-                    result = {county_list[county]: detail["int"] for county, detail in ints.items()}
-                else:
-                    result = {
-                        key: intensity_to_text(details["int"])
-                        for county, details in ints.items()
-                        for key in [county] + [f"{county}{town}" for town in details["town"]]
-                    }
+        if "area" not in intensitys:
+            return {}
+
+        # Each intensity area
+        for i, j in intensitys["area"].items():
+            # Each township
+            for k in j:
+                # Each county
+                for county_id, (zip_start, zip_end) in COUNTY_TOWN.items():
+                    # If township in county
+                    if zip_start <= k <= zip_end:
+                        # Only update if new intensity is higher
+                        if county_id not in result or result[county_id] < int(i):
+                            result[county_id] = int(i)
+                        break
+
+        return result
+
+    async def convert_zip3_town(self, intensitys) -> dict:  # noqa: PLR6301
+        """Convert ZIP Code to Township name."""
+        result = {}
+
+        if "area" not in intensitys:
+            return {}
+
+        for i, j in intensitys["area"].items():
+            town = []
+            for k in j:
+                if k in ZIP3_TOWN:
+                    town.insert(0, ZIP3_TOWN[k])
+            result[intensity_to_text(int(i))] = town
 
         return result
 

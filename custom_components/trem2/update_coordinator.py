@@ -39,6 +39,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=config_entry.title,
+            always_update=False,
         )
 
         # Get client session
@@ -119,6 +120,8 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             )
             raise ConfigEntryNotReady("ExpTech server connection failures")
 
+        await self.async_register_shutdown()
+
     async def async_register_shutdown(self):
         """Register shutdown on HomeAssistant stop."""
 
@@ -131,9 +134,16 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         )
 
     async def _async_shutdown(self):
-        """Perform WebSocket disconnect."""
+        """Perform WebSocket disconnect and data saving."""
         if self.client.websocket.state.is_running:
             await self.client.websocket.disconnect()
+
+        await self.config_entry.runtime_data.recent_sotre.async_save(
+            self.store.coordinator_data["recent"],
+        )
+        await self.config_entry.runtime_data.report_store.async_save(
+            self.store.coordinator_data["report"],
+        )
 
     async def _async_update_data(self):
         """Perform update data."""
@@ -179,6 +189,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             # Handle incoming Http messages
             resp = await self.client.http.fetch_eew()
             if resp:
+                # Provider preferred CWA
                 filtered = [d for d in resp if d.get("author") == "cwa"]
                 await self._handle({
                     "type": "eew",
@@ -230,13 +241,11 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
         return True
 
-    async def _handle(self, resp: dict[str, Any] | None) -> None:
+    async def _handle(self, resp: dict[str, Any]) -> None:
         """Handle incoming WebSocket messages based on type."""
-        if resp is None:
-            raise RuntimeError("An error occurred during message handling")
+        event_type = resp.get("type")
 
         # Handled message on type
-        event_type = resp.get("type")
         match event_type:
             case "eew":
                 data: dict[str, Any] = resp.get("data", {})
@@ -246,13 +255,12 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 if flag:
                     self.hass.bus.fire(
                         f"{DOMAIN}_notification",
-                        {"earthquake": str(resp)},
+                        {"earthquake": data},
                         origin=EventOrigin.remote,
                     )
 
             case "report":
                 data: dict[str, Any] = resp.get("data", {})
-                _LOGGER.warning("Received report data: %s", data)  # TODO: 記得移除
                 flag = await self.store.load_report_data(data)
 
                 # Event bus fired

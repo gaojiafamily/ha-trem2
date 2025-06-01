@@ -332,6 +332,9 @@ class ExpTechWSClient:
         if not self.state.conn:
             raise ConnectionError("WebSocket connection is not established")
 
+        if self.state.message is None:
+            raise RuntimeError("An error occurred during message handling")
+
         return self.state.message
 
     def initialize_route(self, action="class", **kwargs) -> tuple:
