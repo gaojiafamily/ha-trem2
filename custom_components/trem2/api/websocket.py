@@ -88,8 +88,6 @@ class ExpTechWSState:
     pong_time: float = 0
 
     # Task
-    config_entry: Trem2ConfigEntry | None = None
-    hass: HomeAssistant | None = None
     heartbeat_task: Task | None = None
     listen_task: Task | None = None
 
@@ -322,11 +320,11 @@ class ExpTechWSClient:
                 await asyncio.sleep(3)
                 continue
 
-    async def recv(self) -> dict[str, Any] | None:
+    async def recv(self) -> dict[str, Any]:
         """Fetch data from the ExpTech server via WebSocket.
 
         Returns:
-            list | None: The received message(s) or None if not available.
+            list: The received message(s).
 
         """
         if not self.state.conn:

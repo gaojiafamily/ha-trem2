@@ -170,7 +170,7 @@ class MonitoringImage(ImageEntity):
         try:
             # Check state change
             if self.data.image_id != eq_id:
-                self.data.intensitys = None
+                self.data.intensitys = {}
 
                 # Calculate the intensity
                 match eq_data:
