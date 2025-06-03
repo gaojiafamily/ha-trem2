@@ -99,7 +99,7 @@ class Trem2Store:
 
         # Check earthquake data if not None
         if data:
-            report_id = data["id"].copy()
+            report_id = data["id"]
 
             # Adjust the report data format
             pattern = r"(\d{6})-?(?:\d{4})-([0-1][0-9][0-3][0-9])-(\d{6})"
