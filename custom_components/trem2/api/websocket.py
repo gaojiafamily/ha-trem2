@@ -356,9 +356,9 @@ class ExpTechWSClient:
 
         match (base_url, api_node):
             case (url, _) if url:
-                self.unavailables = []
+                self.unavailables.clear()
             case (_, node) if node in WS_URLS:
-                self.unavailables = []
+                self.unavailables.clear()
                 base_url = WS_URLS[node]
             case _:
                 api_nodes = [k for k in WS_URLS if k not in self.unavailables]

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -162,6 +163,10 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             flag = await self._http_update_data()
             self.client.retry_backoff = 1 if flag else self.client.retry_backoff + 1
 
+        # Fetch report data
+        if self.client.fetch_report:
+            await self._report_update_data()
+
         # Retry backoff if no data
         match self.client.retry_backoff:
             case retries if retries >= 10:
@@ -175,6 +180,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                     self.conf.max_interval,
                 )
                 self.update_interval = new_interval
+                self.client.update_interval = self.update_interval
                 _LOGGER.error(
                     "Update failed, next attempt in %s seconds",
                     new_interval.total_seconds(),
@@ -183,18 +189,37 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
         return self.store.coordinator_data
 
+    async def _report_update_data(self):
+        """Fetch Report data."""
+        fetch_report_flag = abs(datetime.now().timestamp() - self.data["report"]["fetch_time"]) < 600
+
+        if fetch_report_flag:
+            return
+
+        report_data = await self.client.http.fetch_report(limit=1)
+        cache: list[dict[str, Any]] = self.data["recent"]["cache"]
+        seen = {d["id"] for d in cache}
+        if report_data[0]["id"] in seen:
+            await self.store.fetch_report()
+            self.client.fetch_report = False
+
     async def _http_update_data(self) -> bool:
         """Preform Http update data."""
+        params = {}
+
         try:
             # Handle incoming Http messages
             resp = await self.client.http.fetch_eew()
             if resp:
                 # Provider preferred CWA
                 filtered = [d for d in resp if d.get("author") == "cwa"]
-                await self._handle({
-                    "type": "eew",
-                    "data": filtered[0] if filtered else resp[0],
-                })
+                if filtered:
+                    self.client.fetch_report = True
+                    params = {"type": "eew", "data": filtered[0]}
+                else:
+                    params = {"type": "eew", "data": resp[0]}
+
+                await self._handle(params)
 
         except RuntimeError:
             self.client.retry_backoff += 1
@@ -223,6 +248,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             if self.client.use_http_fallback:
                 self.client.use_http_fallback = False
                 self.update_interval = self.conf.fast_interval
+                self.client.update_interval = self.update_interval
                 await self.server_status_event(
                     event_fire=True,
                 )

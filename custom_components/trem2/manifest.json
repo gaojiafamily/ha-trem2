@@ -2,7 +2,7 @@
   "codeowners": ["@jayx1011"],
   "domain": "trem2",
   "name": "Taiwan Real-time Earthquake Monitoring 2",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "config_flow": true,
   "documentation": "https://github.com/gaojiafamily/ha-trem2/blob/master/README.md",
   "issue_tracker": "https://github.com/gaojiafamily/ha-trem2/issues",

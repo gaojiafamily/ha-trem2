@@ -24,6 +24,7 @@ class ExpTechClient:
         self.websocket = websocket
         self.retry_backoff = 1
         self.use_http_fallback = False
+        self.fetch_report = False
         self.update_interval = timedelta(seconds=5)
 
     async def api_node(self):

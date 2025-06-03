@@ -72,7 +72,7 @@ class Trem2Store:
 
             # Stored to earthquake cache
             cache.insert(0, data)
-            self.coordinator_data["recent"]["cache"] = cache[-10:]
+            self.coordinator_data["recent"]["cache"] = cache[:10]
             await self.config_entry.runtime_data.recent_sotre.async_save(
                 self.coordinator_data["recent"],
             )
@@ -123,7 +123,7 @@ class Trem2Store:
 
             # Stored to report cache
             cache.insert(0, data)
-            self.coordinator_data["report"]["cache"] = cache[-5:]
+            self.coordinator_data["report"]["cache"] = cache[:5]
             await self.config_entry.runtime_data.report_store.async_save(
                 self.coordinator_data["report"],
             )
@@ -199,11 +199,11 @@ class Trem2Store:
         report_intensity: dict | None = report.get("list")
         report_id = report.get("id")
 
-        # 當報表不同時，重設震度速報 ID
+        # Reset intensity id if not equal report id
         if eew_id != report_id:
             intensitys_data.pop("id", None)
 
-        # Case 1: 比對震度速報和報表資料
+        # Case 1: Comparison of intensity and report data
         intensitys_data.setdefault("id", report.get("trem"))
         if report_intensity and intensitys_data.get("id") == report.get("trem"):
             county_list = {v: k for k, v in ATTR_COUNTY.items()}
@@ -216,7 +216,7 @@ class Trem2Store:
 
             return intensity, lists
 
-        # Case 2: 使用震度速報資料為主
+        # Case 2: Preferred intensity data
         intensity = await self.convert_zip3_county(intensitys_data)
         lists = await self.convert_zip3_town(intensitys_data)
 

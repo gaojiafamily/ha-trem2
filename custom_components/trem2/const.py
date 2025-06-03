@@ -48,7 +48,7 @@ ISSUE_URL = f"{PROJECT_URL}/issues"
 OFFICIAL_URL = "https://www.gj-smart.com"
 
 # Version
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 # Timezone
 TZ_TW = ZoneInfo("Asia/Taipei")

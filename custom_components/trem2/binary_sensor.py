@@ -131,8 +131,8 @@ class IntensityBinarySensor(BinarySensorEntity):
             intensity_data: dict = self.coordinator.data["recent"]["intensity"]
             intensity_time = int(intensity_data.get("id", 0))
             dt = datetime.now()
-            current_time = ceil(dt.timestamp() * 1000)
-            diff_time = abs(current_time - intensity_time)
+            current_time = dt.timestamp() * 1000
+            diff_time = ceil(abs(current_time - intensity_time) / 1000)
 
             # Update state
             if "area" in intensity_data and diff_time < 300:
@@ -146,10 +146,12 @@ class IntensityBinarySensor(BinarySensorEntity):
             _, lists = await self.coordinator.store.load_intensitys()
             if lists:
                 self._attr_value = {
-                    ATTR_ID: "-".join([
-                        str(intensity_data.get("id") or ""),
-                        str(intensity_data.get("serial") or ""),
-                    ]),
+                    ATTR_ID: "-".join(
+                        [
+                            str(intensity_data.get("id") or ""),
+                            str(intensity_data.get("serial") or ""),
+                        ]
+                    ),
                     ATTR_AUTHOR: intensity_data["author"],
                     ATTR_LIST: lists,
                 }

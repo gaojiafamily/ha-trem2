@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from logging import Logger
 import random
 from time import monotonic
 from typing import Any
@@ -9,16 +10,10 @@ from typing import Any
 from aiohttp import ClientSession
 from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp.hdrs import ACCEPT, CONTENT_TYPE, METH_GET, USER_AGENT
-from homeassistant.const import CONTENT_TYPE_JSON
-from logging import Logger
 
-from ..const import (
-    API_VERSION,
-    BASE_URLS,
-    HA_USER_AGENT,
-    REPORT_URL,
-    REQUEST_TIMEOUT,
-)
+from homeassistant.const import CONTENT_TYPE_JSON
+
+from ..const import API_VERSION, BASE_URLS, HA_USER_AGENT, REPORT_URL, REQUEST_TIMEOUT
 
 
 class ExpTechHTTPClient:
@@ -84,7 +79,7 @@ class ExpTechHTTPClient:
         else:
             if response.ok:
                 if len(self.unavailables) > 0:
-                    self.unavailables = []
+                    self.unavailables.clear()
 
                 resp = await response.json()
                 self.latency = abs(monotonic() - start)
@@ -100,7 +95,7 @@ class ExpTechHTTPClient:
 
         raise RuntimeError("An error occurred during message reception")
 
-    async def fetch_report(self) -> list:
+    async def fetch_report(self, limit=5) -> list:
         """Fetch report summary from the ExpTech server via HTTP.
 
         Returns:
@@ -113,10 +108,12 @@ class ExpTechHTTPClient:
                 CONTENT_TYPE: CONTENT_TYPE_JSON,
                 USER_AGENT: HA_USER_AGENT,
             }
+            params = {"limit": limit}
 
             response = await self.session.request(
                 method=METH_GET,
-                url=f"{REPORT_URL}?limit=5",
+                url=REPORT_URL,
+                params=params,
                 headers=headers,
                 timeout=REQUEST_TIMEOUT,
             )
@@ -187,9 +184,9 @@ class ExpTechHTTPClient:
 
         match (base_url, api_node):
             case (url, _) if url:
-                self.unavailables = []
+                self.unavailables.clear()
             case (_, node) if node in BASE_URLS:
-                self.unavailables = []
+                self.unavailables.clear()
                 base_url = f"{BASE_URLS[node]}/api/v{API_VERSION}/eq/eew"
             case _:
                 api_nodes = [k for k in BASE_URLS if k not in self.unavailables]

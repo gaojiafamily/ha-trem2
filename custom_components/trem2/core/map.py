@@ -342,6 +342,7 @@ def draw(intensitys: dict, eq_data: dict, eq_id="XXXXXXX-X", bg_path=None, url=N
                 "depth": float,
                 "loc": str,
                 "time": int,
+                "max": int,
             },
         }
 
