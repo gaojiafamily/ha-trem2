@@ -211,7 +211,7 @@ class IntensityBinarySensor(BinarySensorEntity):
         if not self.coordinator.client.websocket.state.conn:
             raise HomeAssistantError("WebSocket is unavailable.")
 
-        self.coordinator.client.websocket.initialize_route(
+        api_node, base_url = self.coordinator.client.websocket.initialize_route(
             action="service",
             api_node=api_node,
             base_url=base_url,

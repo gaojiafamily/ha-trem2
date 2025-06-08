@@ -1,4 +1,4 @@
-"""TEST Server."""
+"""TEST HTTP Server."""
 
 import random
 from threading import Thread
@@ -25,7 +25,7 @@ class State:
         self.eq_id = new_value
 
 
-def publish_earthquake_data() -> int:
+def publish_earthquake_data():
     """Publish earthquake data."""
     state = State()
     time.sleep(15)
