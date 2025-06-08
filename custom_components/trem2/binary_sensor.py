@@ -27,6 +27,7 @@ from .const import (
     ATTR_ID,
     ATTR_LIST,
     DOMAIN,
+    FAST_INTERVAL,
     INT_DEFAULT_ICON,
     INT_TRIGGER_ICON,
     MANUFACTURER,
@@ -56,8 +57,7 @@ async def async_setup_entry(
     config_entry: Trem2ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the TREM binary sensor from config."""
-    # Create the binary sensor entity
+    """Set up the binary sensor from config entry."""
     entities = []
     for entity in SENSOR_ENTITYS:
         if entity.key == "intensity":
@@ -101,7 +101,7 @@ class IntensityBinarySensor(BinarySensorEntity):
             model="ExpTechTW TREM",
             sw_version=__version__,
         )
-        self.coordinator = config_entry.runtime_data.coordinator
+        self.config_entry = config_entry
         self.entity_description = description
 
         self._attr_value = {}
@@ -129,7 +129,7 @@ class IntensityBinarySensor(BinarySensorEntity):
 
         if self.coordinator.data:
             intensity_data: dict = self.coordinator.data["recent"]["intensity"]
-            intensity_time = int(intensity_data.get("id", 0))
+            intensity_time = int(intensity_data.get("id", 0) or 0)
             dt = datetime.now()
             current_time = dt.timestamp() * 1000
             diff_time = ceil(abs(current_time - intensity_time) / 1000)
@@ -143,7 +143,7 @@ class IntensityBinarySensor(BinarySensorEntity):
                 self._state = False
 
             # Update attributes
-            _, lists = await self.coordinator.store.load_intensitys()
+            _, lists = await self.coordinator.data_client.load_intensitys()
             if lists:
                 self._attr_value = {
                     ATTR_ID: "-".join(
@@ -155,8 +155,6 @@ class IntensityBinarySensor(BinarySensorEntity):
                     ATTR_AUTHOR: intensity_data["author"],
                     ATTR_LIST: lists,
                 }
-
-            self.async_write_ha_state()
 
     @property
     def available(self):
@@ -205,18 +203,21 @@ class IntensityBinarySensor(BinarySensorEntity):
         api_node = kwargs.get(ATTR_API_NODE)
         base_url = kwargs.get(CONF_URL)
 
+        if self.coordinator.web_socket is None or not self.coordinator.web_socket.state.conn:
+            raise HomeAssistantError("WebSocket is unavailable.")
+
         if api_node is None and base_url is None:
             raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`")
 
-        if not self.coordinator.client.websocket.state.conn:
-            raise HomeAssistantError("WebSocket is unavailable.")
-
-        self.coordinator.client.websocket.initialize_route(
-            action="service",
+        await self.coordinator.web_socket.initialize_route(
             api_node=api_node,
             base_url=base_url,
         )
-        self.coordinator.update_interval = self.coordinator.conf.fast_interval
+        self.config_entry.runtime_data.update_interval = FAST_INTERVAL
         await self.coordinator.async_refresh()
 
         await self.coordinator.server_status_event(node=api_node)
+
+    @property
+    def coordinator(self):
+        return self.config_entry.runtime_data.coordinator

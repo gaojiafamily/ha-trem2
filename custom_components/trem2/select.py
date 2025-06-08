@@ -35,8 +35,7 @@ async def async_setup_entry(
     config_entry: Trem2ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the TREM select from config."""
-    # Create the sensor entity
+    """Set up the select entity from a config entry."""
     entities = []
     for entity in SELECT_ENTITYS:
         if entity.key == "report":
@@ -64,7 +63,6 @@ class ReportSelect(SelectEntity):
             sw_version=__version__,
         )
         self.config_entry = config_entry
-        self.coordinator = config_entry.runtime_data.coordinator
         self.entity_description = description
 
         self._attr_current_option = None
@@ -163,3 +161,7 @@ class ReportSelect(SelectEntity):
             domain = self.config_entry.domain
             suffix = "user"
         return f"{domain.lower()}_{suffix.lower()}_{self.entity_description.key.lower()}"
+
+    @property
+    def coordinator(self):
+        return self.config_entry.runtime_data.coordinator

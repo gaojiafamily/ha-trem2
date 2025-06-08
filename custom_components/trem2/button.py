@@ -35,8 +35,7 @@ async def async_setup_entry(
     config_entry: Trem2ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the TREM refresh button from config."""
-    # Create the sensor entity
+    """Set up the button entity from config entry."""
     entities = []
     for entity in BUTTON_ENTITYS:
         if entity.key == "refresh_report":
@@ -69,7 +68,7 @@ class RefreshButton(ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        await self.coordinator.store.fetch_report()
+        await self.coordinator.data_client.fetch_report()
 
     @property
     def available(self):

@@ -13,7 +13,6 @@ from homeassistant.helpers import device_registry as dr
 
 if TYPE_CHECKING:
     from .runtime import Trem2RuntimeData
-    from .update_coordinator import Trem2UpdateCoordinator
 
 
 TO_REDACT = [
@@ -44,7 +43,8 @@ async def async_get_device_diagnostics(
 
 async def _async_get_diagnostics(hass: HomeAssistant, config_entry: Trem2ConfigEntry):
     diag_data = {}
-    update_coordinator: Trem2UpdateCoordinator = config_entry.runtime_data.coordinator
+    runtime_data = config_entry.runtime_data
+    coordinator = runtime_data.coordinator
 
     try:
         system_log: LogErrorHandler = hass.data["system_log"]
@@ -53,12 +53,12 @@ async def _async_get_diagnostics(hass: HomeAssistant, config_entry: Trem2ConfigE
         diag_data["options"] = async_redact_data(config_entry.options, TO_REDACT)
         diag_data["logs"] = [entry.to_dict() for key, entry in records if config_entry.domain in str(key)]
 
-        if update_coordinator:
-            diag_data["use_http_fallback"] = update_coordinator.client.use_http_fallback
-            diag_data["last_exception"] = repr(update_coordinator.last_exception)
-            diag_data["server_status"] = await update_coordinator.client.server_status()
-            diag_data["recent"] = update_coordinator.data["recent"]
-            diag_data["report"] = update_coordinator.data["report"]
+        if coordinator:
+            diag_data["last_exception"] = repr(coordinator.last_exception)
+            diag_data["server_status"] = await coordinator.data_client.server_status()
+            diag_data["recent"] = coordinator.data["recent"]
+            diag_data["report"] = coordinator.data["report"]
+            diag_data["update_interval"] = runtime_data.update_interval.total_seconds()
     except (AttributeError, KeyError, RuntimeError) as e:
         diag_data["error"] = f"{type(e).__name__}: {e!r}"
 

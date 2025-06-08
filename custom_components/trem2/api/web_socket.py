@@ -2,97 +2,31 @@
 
 from __future__ import annotations
 
-import asyncio
-from asyncio import Task
-from dataclasses import dataclass
-from enum import Enum
+from asyncio import CancelledError, Task, sleep
 import json
 import logging
-import random
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
-from aiohttp import (
-    ClientConnectionResetError,
-    ClientSession,
-    ClientWebSocketResponse,
-    WSMsgType,
-    WSServerHandshakeError,
-)
+from aiohttp import ClientConnectionResetError, ClientSession, WSMsgType, WSServerHandshakeError
 from aiohttp.hdrs import USER_AGENT
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
-from ..const import HA_USER_AGENT, WS_URLS  # noqa: TID252
+from ..const import HA_USER_AGENT, WS_URLS
+from ..models import DictKeyExclusionCycler, EndPoint, ExpTechClient
 
 if TYPE_CHECKING:
-    from ..runtime import Trem2RuntimeData  # noqa: TID252
+    from runtime import Trem2RuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
 type Trem2ConfigEntry = ConfigEntry[Trem2RuntimeData]
 
 
-class WebSocketService(Enum):
-    """Represent the supported WebSocket service."""
-
-    REALTIME_STATION = "trem.rts"  # 即時地動資料
-    REALTIME_WAVE = "trem.rtw"  # 即時地動波形圖資料
-    EEW = "websocket.eew"  # 地震速報資料
-    TREM_EEW = "trem.eew"  # TREM 地震速報資料
-    REPORT = "websocket.report"  # 中央氣象署地震報告資料
-    TSUNAMI = "websocket.tsunami"  # 中央氣象署海嘯資訊資料
-    CWA_INTENSITY = "cwa.intensity"  # 中央氣象署震度速報資料
-    TREM_INTENSITY = "trem.intensity"  # TREM 震度速報資料
-
-
-@dataclass
-class ExpTechWSConf:
-    """WebSocket configuration for TREM2 component."""
-
-    # Configuration
-    access_token = "c0d30WNER$JTGAO"
-    register_service = [
-        WebSocketService.CWA_INTENSITY,
-        WebSocketService.EEW,
-        WebSocketService.REPORT,
-        WebSocketService.TREM_INTENSITY,
-        WebSocketService.TSUNAMI,
-    ]
-    params = {}
-
-
-class ExpTechWSState:
-    """WebSocket State and Task for TREM2 component."""
-
-    def __init__(
-        self,
-        config_entry: Trem2ConfigEntry,
-        hass: HomeAssistant,
-    ) -> None:
-        """Store the client state."""
-        self.config_entry = config_entry
-        self.hass = hass
-
-    # State
-    conn: ClientWebSocketResponse | None = None
-    credentials: dict | None = None
-    subscrib_service: list | None = None
-    is_running = False
-    message: dict | None = None
-
-    # Connection
-    ping_time: float = 0
-    pong_time: float = 0
-
-    # Task
-    heartbeat_task: Task | None = None
-    listen_task: Task | None = None
-
-
-class ExpTechWSClient:
+class ExpTechWSClient(ExpTechClient):
     """Manage WebSocket connections and message reception."""
 
     def __init__(
@@ -100,26 +34,23 @@ class ExpTechWSClient:
         config_entry: Trem2ConfigEntry,
         hass: HomeAssistant,
         session: ClientSession,
-        *,
-        api_node=None,
-        base_url=None,
-        unavailables: list[str] | None = None,
+        access_token: str,
     ) -> None:
         """Initialize the WebSocket client."""
-        self.unavailables: list[str] = unavailables or []
-        self.api_node: str | None
-        self.base_url: str | None
-        self.api_node, self.base_url = self.initialize_route(
-            api_node=api_node,
-            base_url=base_url,
-            unavailables=self.unavailables,
+        super().__init__(
+            session=session,
+            node_cycler=DictKeyExclusionCycler(WS_URLS),
         )
-        self.session: ClientSession = session
-        self.conf = ExpTechWSConf()
-        self.state = ExpTechWSState(
-            config_entry,
-            hass,
-        )
+
+        self.config_entry = config_entry
+        self.hass = hass
+        self.api_node = None
+        self.base_url = None
+        self.unavailables = None
+
+        self.access_token: str = access_token
+        self.heartbeat_task: Task | None = None
+        self.listen_task: Task | None = None
 
     async def reconnect(self, close_code=999):
         """Reconnect to the WebSocket server."""
@@ -136,13 +67,13 @@ class ExpTechWSClient:
 
     async def disconnect(self, close_code=999):
         """Close the active WebSocket connection and reset credentials."""
-        if self.state.listen_task:
-            self.state.listen_task.cancel()
-            self.state.listen_task = None
+        if self.listen_task:
+            self.listen_task.cancel()
+            self.listen_task = None
 
-        if self.state.heartbeat_task:
-            self.state.heartbeat_task.cancel()
-            self.state.heartbeat_task = None
+        if self.heartbeat_task:
+            self.heartbeat_task.cancel()
+            self.heartbeat_task = None
 
         if self.state.conn and not self.state.conn.closed:
             await self.state.conn.close(
@@ -154,7 +85,7 @@ class ExpTechWSClient:
         self.state.credentials = None
         self.state.is_running = False
 
-    async def connect(self, params: dict | None = None):
+    async def connect(self):
         """Establish a new WebSocket connection.
 
         Args:
@@ -175,20 +106,18 @@ class ExpTechWSClient:
 
         # Establishing a connection
         try:
-            self.conf.params = params or {}
             headers = {
                 USER_AGENT: HA_USER_AGENT,
             }
             self.state.conn = await self.session.ws_connect(
-                self.base_url,
+                str(self.base_url),
                 headers=headers,
                 autoclose=False,
                 autoping=False,
             )
         except WSServerHandshakeError as err:
-            hass = self.state.hass
-            entry_id = self.state.config_entry.entry_id
-            hass.async_create_task(hass.config_entries.async_reload(entry_id))
+            entry_id = self.config_entry.entry_id
+            self.hass.async_create_task(self.hass.config_entries.async_reload(entry_id))
             raise HomeAssistantError("The ExpTech server is not responding") from err
 
         # Initialize background tasks and verify
@@ -213,7 +142,7 @@ class ExpTechWSClient:
                     _LOGGER.debug("(listener) WebSocket connection closed, disconnecting")
                     break
 
-                await asyncio.sleep(3)
+                await sleep(3)
                 continue
 
             # Extract the message type and data from the WSMessage object.
@@ -229,7 +158,7 @@ class ExpTechWSClient:
                 retries = 0
             except (RuntimeError, ConnectionResetError):
                 retries += 1
-                await asyncio.sleep(3)
+                await sleep(3)
                 if retries >= max_retries:
                     _LOGGER.error("Max retries reached, WebSocket connection failures")
                     break
@@ -290,7 +219,7 @@ class ExpTechWSClient:
                 if msg_code == 401:
                     self.state.credentials = None
                 if msg_code == 503:
-                    await asyncio.sleep(5)
+                    await sleep(5)
 
                 return msg_data
             case "data" | "ntp":
@@ -308,17 +237,27 @@ class ExpTechWSClient:
                     _LOGGER.debug("(heartbeat) WebSocket is disconnecting")
                     break
 
-                await asyncio.sleep(3)
+                await sleep(3)
                 continue
 
             try:
                 self.state.ping_time = monotonic()
                 _LOGGER.debug("(heartbeat) > PING")
                 await self.state.conn.ping()
-                await asyncio.sleep(30)
+                await sleep(30)
             except ClientConnectionResetError:
-                await asyncio.sleep(3)
+                await sleep(3)
                 continue
+
+    async def _verify(self):
+        if self.state.conn and self.state.credentials is None:
+            self.state.credentials = {
+                "type": "start",
+                "key": self.access_token,
+                "service": [k.value for k in self.register_service],
+            }
+
+            await self.state.conn.send_json(self.state.credentials)
 
     async def recv(self) -> dict[str, Any]:
         """Fetch data from the ExpTech server via WebSocket.
@@ -335,53 +274,42 @@ class ExpTechWSClient:
 
         return self.state.message
 
-    def initialize_route(self, action="class", **kwargs) -> tuple:
-        """Randomly select a node for HTTP connection.
+    async def initialize_route(
+        self,
+        *,
+        api_node: str | None = None,
+        base_url: EndPoint | str | None = None,
+        unavailables: list[str] | None = None,
+    ):
+        """Randomly select a node for WebSocket connection.
 
         Args:
-            action: Required keyword arguments:
-                - class: Assign arguments by returning results via tuple
-                - service: When calling through the service, the original arguments will be replaced.
-            **kwargs: Arbitrary keyword arguments. Can include:
-                - api_node (str, optional): Specific api_node to use.
-                - base_url (str, optional): Specific base URL to use.
-                - unavailables (list, optional): List of nodes to exclude.
-
-        Returns:
-            tuple: The API Node information.
+            api_node (str, optional): Specific api_node to use.
+            base_url (str, optional): Specific base URL to use.
+            unavailables (list, optional): List of nodes to exclude.
 
         """
-        base_url: str = kwargs.get("base_url", "")
-        api_node: str = kwargs.get("api_node") or base_url
+        if unavailables is None:
+            unavailables = []
 
+        self.unavailables = unavailables
         match (base_url, api_node):
             case (url, _) if url:
+                self.api_node = str(url)
+                self.base_url = EndPoint.model_validate(url)
                 self.unavailables.clear()
             case (_, node) if node in WS_URLS:
+                self.api_node = node
+                self.base_url = EndPoint.model_validate(WS_URLS[node])
                 self.unavailables.clear()
-                base_url = WS_URLS[node]
             case _:
-                api_nodes = [k for k in WS_URLS if k not in self.unavailables]
-                if not api_nodes:
+                self.node_cycler.update_exclusions(self.unavailables)
+                node, url = self.node_cycler.next()
+                if node is None:
                     raise RuntimeError("No available nodes")
-                api_node = random.choice(api_nodes)
-                base_url = WS_URLS[api_node]
 
-        if action == "service":
-            self.api_node = api_node
-            self.base_url = base_url
-
-        return (api_node, base_url)
-
-    async def _verify(self):
-        if self.state.conn and self.state.credentials is None:
-            self.state.credentials = {
-                "type": "start",
-                "key": self.conf.access_token,
-                "service": [k.value for k in self.conf.register_service],
-            }
-
-            await self.state.conn.send_json(self.state.credentials)
+                self.api_node = node
+                self.base_url = EndPoint.model_validate(url)
 
     def initialize_background_tasks(self):
         """Initialize and manage background tasks for WebSocket operations."""
@@ -394,7 +322,7 @@ class ExpTechWSClient:
 
             try:
                 exc = task.exception()
-            except asyncio.CancelledError:
+            except CancelledError:
                 _LOGGER.debug("Task exception retrieval was cancelled (Home Assistant is stopping)")
                 return
             except Exception as ex:  # noqa: BLE001
@@ -405,22 +333,22 @@ class ExpTechWSClient:
                 _LOGGER.error("Task failed: %s", repr(exc))
 
         # Create and manage the listener task
-        if self.state.hass:
-            if self.state.listen_task and not self.state.listen_task.done():
-                _LOGGER.debug("Task: %s is already running", self.state.listen_task.get_name())
+        if self.hass:
+            if self.listen_task and not self.listen_task.done():
+                _LOGGER.debug("Task: %s is already running", self.listen_task.get_name())
             else:
-                self.state.listen_task = self.state.hass.async_create_background_task(
+                self.listen_task = self.hass.async_create_background_task(
                     self._listen(),
                     name="websocket client listener",
                 )
-                self.state.listen_task.add_done_callback(handle_task_exception)
+                self.listen_task.add_done_callback(handle_task_exception)
 
             # Create and manage the keepalive task
-            if self.state.heartbeat_task and not self.state.heartbeat_task.done():
-                _LOGGER.debug("Task: %s is already running", self.state.heartbeat_task.get_name())
+            if self.heartbeat_task and not self.heartbeat_task.done():
+                _LOGGER.debug("Task: %s is already running", self.heartbeat_task.get_name())
             else:
-                self.state.heartbeat_task = self.state.hass.async_create_background_task(
+                self.heartbeat_task = self.hass.async_create_background_task(
                     self._keepalive(),
                     name="websocket client heartbeat",
                 )
-                self.state.heartbeat_task.add_done_callback(handle_task_exception)
+                self.heartbeat_task.add_done_callback(handle_task_exception)

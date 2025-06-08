@@ -42,7 +42,6 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the image entity from a config entry."""
-    # Create the image entity
     entities = []
     for entity in IMAGE_ENTITYS:
         if entity.key == "monitoring":
@@ -160,7 +159,7 @@ class MonitoringImage(ImageEntity):
 
         # Get the latest earthquake data
         selected = getattr(self.config_entry.runtime_data, "selected_option", None)
-        eq_data = await self.coordinator.store.load_eew_data(selected)
+        eq_data = await self.coordinator.data_client.load_eew_data(selected)
         eq_id = eq_data.get("id", self.data.image_id)
         if self.coordinator.data["recent"]["simulating"]:
             eq_id = f"#{eq_data['id']}#"
@@ -192,7 +191,7 @@ class MonitoringImage(ImageEntity):
                 intensity_data.get("serial"),
             )
             eq_id = "-".join(map(str, intensity_id))
-            self.data.intensitys, _ = await self.coordinator.store.load_intensitys()
+            self.data.intensitys, _ = await self.coordinator.data_client.load_intensitys()
             eq_data = intensity_data
             eq_data["eq"]["max"] = intensity_data["max"]
 
