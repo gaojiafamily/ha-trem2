@@ -1,26 +1,29 @@
 """Constants for the custom component."""
 
-from datetime import UTC
+from datetime import UTC, timedelta
 from zoneinfo import ZoneInfo
 
 from aiohttp import ClientTimeout
 
 from homeassistant.const import ATTR_LATITUDE, ATTR_LOCATION, ATTR_LONGITUDE, Platform
 
+from .models import StoreDefinition
+
 # Initialize
 BUTTON_ICON = "mdi:file-document-refresh"
-DEFAULT_NAME = "TREM2"
 DEFAULT_ICON = "mdi:waveform"
 REPORT_ICON = "mdi:file-document"
 DOMAIN = "trem2"
 INT_DEFAULT_ICON = "mdi:circle-outline"
 INT_TRIGGER_ICON = "mdi:alert-circle-outline"
-PLATFORMS = [
-    Platform.BINARY_SENSOR,
+BASE_PLATFORMS = [
     Platform.BUTTON,
     Platform.IMAGE,
     Platform.SELECT,
     Platform.SENSOR,
+]
+EXTRA_PLATFORMS = [
+    Platform.BINARY_SENSOR,
 ]
 
 # Config
@@ -48,7 +51,7 @@ ISSUE_URL = f"{PROJECT_URL}/issues"
 OFFICIAL_URL = "https://www.gj-smart.com"
 
 # Version
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 # Timezone
 TZ_TW = ZoneInfo("Asia/Taipei")
@@ -494,8 +497,13 @@ NOTIFICATION_ATTR = [
 MANUFACTURER = "高家田 (jayx1011)"
 
 # Stored
-STORAGE_EEW = "{domain}/{entry_id}/recent_data.json"
-STORAGE_REPORT = "{domain}/{entry_id}/report.json"
+STORAGE_EEW_KEY = "{domain}/{entry_id}/recent_data.json"
+STORAGE_REPORT_KEY = "{domain}/{entry_id}/report.json"
+DEFINED_STORES: dict[str, StoreDefinition] = {
+    "recent": StoreDefinition(version=1, key_template=STORAGE_EEW_KEY),
+    "report": StoreDefinition(version=1, key_template=STORAGE_REPORT_KEY),
+    # "tsunami": StoreDefinition(version=1, key_template=STORAGE_TSUNAMI_KEY),
+}
 
 # REST
 HA_USER_AGENT = "TREM custom integration for Home Assistant (https://github.com/gaojiafamily/ha-trem2)"
@@ -522,6 +530,11 @@ REQUEST_TIMEOUT = ClientTimeout(
     sock_read=10,
     sock_connect=10,
 )
+
+# Rest Interval
+FAST_INTERVAL = timedelta(seconds=1)
+BASE_INTERVAL = timedelta(seconds=5)
+MAX_INTERVAL = timedelta(minutes=15)
 
 # STRINGS
 STARTUP = f"""

@@ -28,6 +28,7 @@ from .const import (
     ATTR_MAG,
     ATTR_TIME,
     ATTRIBUTION,
+    BASE_INTERVAL,
     DEFAULT_ICON,
     DOMAIN,
     MANUFACTURER,
@@ -62,8 +63,7 @@ async def async_setup_entry(
     config_entry: Trem2ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the TREM sensor from config."""
-    # Create the sensor entity
+    """Set up the sensor entity from a config entry."""
     entities = []
     for entity in SENSOR_ENTITYS:
         if entity.key == "notification":
@@ -161,7 +161,7 @@ class NotificationSensor(SensorEntity):
 
         try:
             selected = getattr(self.config_entry.runtime_data, "selected_option", None)
-            notification = await self.coordinator.store.load_eew_data(selected)
+            notification = await self.coordinator.data_client.load_eew_data(selected)
             eew: dict = notification.get("eq", {})
             time: Any | None = eew.get("time")
             time_of_occurrence = ""
@@ -216,6 +216,7 @@ class DiagnosticsSensor(SensorEntity):
             model="ExpTechTW TREM",
             sw_version=__version__,
         )
+        self._attr_should_poll = True
         self.config_entry = config_entry
         self.coordinator = config_entry.runtime_data.coordinator
         self.entity_description = description
@@ -223,23 +224,19 @@ class DiagnosticsSensor(SensorEntity):
         self._state = ""
         self._attributes = {}
 
-    async def async_added_to_hass(self) -> None:
-        """Run when this Entity has been added to HA."""
-        await super().async_added_to_hass()
+    async def async_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        if not self.coordinator.last_update_success:
+            return
 
-        def _schedule_update_callback() -> None:
-            self.hass.async_create_task(self._update_callback())
-
-        self.async_on_remove(
-            self.coordinator.async_add_listener(
-                _schedule_update_callback,
-            )
-        )
+        protocol, _ = await self.coordinator.data_client.api_node()
+        self._state = protocol
+        self._attributes = await self.coordinator.data_client.server_status()
 
     async def async_will_remove_from_hass(self) -> None:
         """Unload when this Entity has been remove from HA."""
-        if self.coordinator.client.websocket.state.is_running:
-            await self.coordinator.client.websocket.disconnect()
+        if self._web_socket and self._web_socket.state.is_running:
+            await self._web_socket.disconnect()
 
         await super().async_will_remove_from_hass()
 
@@ -280,13 +277,6 @@ class DiagnosticsSensor(SensorEntity):
         """Return the icon of the sensor."""
         return "mdi:flash" if self._state == "websocket" else "mdi:lock"
 
-    async def _update_callback(self) -> None:
-        """Handle updated data from the coordinator."""
-        if not self.coordinator.last_update_success:
-            return
-
-        protocol, _ = await self.coordinator.client.api_node()
-        self._state = protocol
-        self._attributes = await self.coordinator.client.server_status()
-
-        self.async_write_ha_state()
+    @property
+    def _web_socket(self):
+        return self.coordinator.web_socket

@@ -11,7 +11,7 @@ from homeassistant.core import EventOrigin, HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 
-from .const import ATTR_API_NODE, DOMAIN
+from .const import ATTR_API_NODE, BASE_INTERVAL, DOMAIN, FAST_INTERVAL
 
 if TYPE_CHECKING:
     from .runtime import Trem2RuntimeData
@@ -44,7 +44,7 @@ async def async_register_services(hass: HomeAssistant) -> bool:
             raise HomeAssistantError("Do not use this service for diagnostic entities")
 
         update_coordinator = config_entry.runtime_data.coordinator
-        coordinator_data = update_coordinator.store.coordinator_data
+        coordinator_data = update_coordinator.data
         coordinator_data["recent"]["simulating"] = data
 
         if "eq" in data:
@@ -82,14 +82,14 @@ async def async_register_services(hass: HomeAssistant) -> bool:
         if api_node is None and base_url is None:
             raise ServiceValidationError("Missing `Server URL` or `ExpTech Node`")
 
-        update_coordinator = config_entry.runtime_data.coordinator
+        runtime_data = config_entry.runtime_data
+        update_coordinator = runtime_data.coordinator
         if base_url:
-            update_coordinator.update_interval = update_coordinator.conf.fast_interval
+            runtime_data.update_interval = FAST_INTERVAL
         else:
-            update_coordinator.update_interval = update_coordinator.conf.base_interval
+            runtime_data.update_interval = BASE_INTERVAL
 
-        update_coordinator.client.http.initialize_route(
-            action="service",
+        await runtime_data.http_client.initialize_route(
             api_node=api_node,
             base_url=base_url,
         )

@@ -7,17 +7,13 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_TOKEN, EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import EventOrigin, HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api.http import ExpTechHTTPClient
-from .api.websocket import ExpTechWSClient
-from .const import DOMAIN, PARAMS_OPTIONS, PROVIDER_OPTIONS
-from .runtime import ExpTechClient, ExpTechConf
-from .store import Trem2Store
+from .const import BASE_INTERVAL, DOMAIN, MAX_INTERVAL
+from .data_client import Trem2DataClient
 
 if TYPE_CHECKING:
     from .runtime import Trem2RuntimeData
@@ -43,87 +39,13 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             always_update=False,
         )
 
-        # Get client session
-        session = async_get_clientsession(hass)
-
-        # Coordinator initialization
-        self.client = ExpTechClient(
-            http=ExpTechHTTPClient(
-                session,
-                _LOGGER,
-            ),
-            websocket=ExpTechWSClient(
-                config_entry,
-                hass,
-                session,
-            ),
-        )
         self.config_entry = config_entry
-        self.conf = ExpTechConf()
-        self.session = session
-        self.store = Trem2Store(
+        self.data_client = Trem2DataClient(
             hass,
-            _LOGGER,
             config_entry,
         )
 
     async def _async_setup(self):
-        """Perform initialize client."""
-
-        def get_provider_option(key, val):
-            if key == "type":
-                for k, v in PROVIDER_OPTIONS:
-                    if k == val:
-                        return v
-            return val
-
-        # Setup config entry options to params
-        config_options = getattr(self.config_entry, "options", {})
-        self.conf.params = {
-            k: get_provider_option(k, v) for k, v in config_options.items() if k in PARAMS_OPTIONS and v
-        }
-
-        # Setup WebSocket or HTTP fetch method
-        _api_token = config_options.get(CONF_API_TOKEN)
-        if _api_token:
-            try:
-                self.client.websocket.conf.access_token = _api_token
-                self.client.websocket.conf.params = self.conf.params
-                await self.client.websocket.connect()
-                self.client.update_interval = self.conf.fast_interval
-            except RuntimeError as ex:
-                raise ConfigEntryNotReady from ex
-        else:
-            self.client.http.params = self.conf.params
-            self.client.update_interval = self.conf.base_interval
-
-        # Setup coordinator data
-        await self.store.load_recent_data()
-        await self.store.load_report_data()
-        await self.store.fetch_report()
-
-        # If max retries, raise connection failures
-        self.update_interval = self.client.update_interval
-        unavailable = (self.client.websocket if _api_token else self.client.http).unavailables
-        _, api_node = await self.client.api_node()
-        if api_node:
-            self.client.retry_backoff = 1
-            await self.server_status_event(
-                event_fire=True,
-                unavailable=unavailable,
-            )
-        else:
-            self.client.http.api_node = None
-            self.client.websocket.api_node = None
-            self.logger.error(
-                "No available nodes (%s), the service will be suspended",
-                ",".join(unavailable),
-            )
-            raise ConfigEntryNotReady("ExpTech server connection failures")
-
-        await self.async_register_shutdown()
-
-    async def async_register_shutdown(self):
         """Register shutdown on HomeAssistant stop."""
 
         async def _on_hass_stop(event):
@@ -136,13 +58,17 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_shutdown(self):
         """Perform WebSocket disconnect and data saving."""
-        if self.client.websocket.state.is_running:
-            await self.client.websocket.disconnect()
+        runtime_data = self.config_entry.runtime_data
 
-        await self.config_entry.runtime_data.recent_sotre.async_save(
+        if self.web_socket and self.web_socket.state.is_running:
+            await self.web_socket.disconnect()
+
+        renect_store = runtime_data.sotre_handler.get_store("recent")
+        await renect_store.async_save(
             self.data["recent"],
         )
-        await self.config_entry.runtime_data.report_store.async_save(
+        report_store = runtime_data.sotre_handler.get_store("report")
+        await report_store.async_save(
             self.data["report"],
         )
 
@@ -152,42 +78,38 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         use_http_fetch = True
 
         # Fetch data from WebSocket
-        ws_state = self.client.websocket.state
-        if ws_state.is_running and ws_state.subscrib_service:
-            flag = await self._websocket_update_data(ws_state.subscrib_service)
-            self.client.retry_backoff = 1 if flag else self.client.retry_backoff + 1
-            use_http_fetch = self.client.use_http_fallback
+        if self.web_socket and self.websocket_is_online():
+            flag = await self._websocket_update_data(self.web_socket.state.subscrib_service)
+            self.web_socket.retry_backoff = 0 if flag else self.web_socket.retry_backoff + 1
+            use_http_fetch = self.web_socket.fallback_mode
 
         # Fetch data from http
         if use_http_fetch:
             flag = await self._http_update_data()
-            self.client.retry_backoff = 1 if flag else self.client.retry_backoff + 1
+            self.http_client.retry_backoff = 0 if flag else self.http_client.retry_backoff + 1
+
+        # Retry backoff if is not responding
+        if self.http_client.retry_backoff >= 10 or (self.web_socket and self.web_socket.retry_backoff >= 10):
+            hass = self.hass
+            entry_id = self.config_entry.entry_id
+            hass.async_create_task(hass.config_entries.async_reload(entry_id))
+            raise HomeAssistantError("The ExpTech server is not responding")
+
+        if self.http_client.retry_backoff > 0:
+            self.retry_backoff(self.http_client.retry_backoff)
+            self.http_client.unavailables.append(self.http_client.api_node)
+            await self.http_client.initialize_route()
+
+        if self.web_socket and self.web_socket.retry_backoff > 0:
+            self.retry_backoff(self.web_socket.retry_backoff)
+            self.web_socket.unavailables.append(self.web_socket.api_node)
+            await self.web_socket.initialize_route()
 
         # Fetch report data
-        if self.client.fetch_report:
+        if self.config_entry.runtime_data.fetch_report:
             await self._report_update_data()
 
-        # Retry backoff if no data
-        match self.client.retry_backoff:
-            case retries if retries >= 10:
-                hass = self.hass
-                entry_id = self.config_entry.entry_id
-                hass.async_create_task(hass.config_entries.async_reload(entry_id))
-                raise HomeAssistantError("The ExpTech server is not responding")
-            case retries if retries > 1:
-                new_interval = min(
-                    self.conf.base_interval * self.client.retry_backoff,
-                    self.conf.max_interval,
-                )
-                self.update_interval = new_interval
-                self.client.update_interval = self.update_interval
-                _LOGGER.error(
-                    "Update failed, next attempt in %s seconds",
-                    new_interval.total_seconds(),
-                )
-                raise UpdateFailed
-
-        return self.store.coordinator_data
+        return self.data
 
     async def _report_update_data(self):
         """Fetch Report data."""
@@ -196,12 +118,12 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         if fetch_report_flag:
             return
 
-        report_data = await self.client.http.fetch_report(limit=1)
+        report_data = await self.http_client.fetch_report(limit=1)
         cache: list[dict[str, Any]] = self.data["recent"]["cache"]
         seen = {d["id"] for d in cache}
         if report_data[0]["id"] in seen:
-            await self.store.fetch_report()
-            self.client.fetch_report = False
+            await self.data_client.fetch_report()
+            self.config_entry.runtime_data.fetch_report = False
 
     async def _http_update_data(self) -> bool:
         """Preform Http update data."""
@@ -209,12 +131,12 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
         try:
             # Handle incoming Http messages
-            resp = await self.client.http.fetch_eew()
+            resp = await self.http_client.fetch_eew()
             if resp:
                 # Provider preferred CWA
                 filtered = [d for d in resp if d.get("author") == "cwa"]
                 if filtered:
-                    self.client.fetch_report = True
+                    self.config_entry.runtime_data.fetch_report = True
                     params = {"type": "eew", "data": filtered[0]}
                 else:
                     params = {"type": "eew", "data": resp[0]}
@@ -222,49 +144,56 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 await self._handle(params)
 
         except RuntimeError:
-            self.client.retry_backoff += 1
+            self.http_client.retry_backoff += 1
             return False
 
+        self.update_interval = self.config_entry.runtime_data.update_interval
         return True
 
-    async def _websocket_update_data(self, subscrib_service: list) -> bool:
+    async def _websocket_update_data(self, subscrib_service: list | None = None) -> bool:
         """Perform WebSocket update data."""
+        if self.web_socket is None:
+            return False
+
+        if subscrib_service is None:
+            subscrib_service = []
+
         try:
             # If re-auth is required, an exception is raised
-            if self.client.websocket.state.credentials is None:
-                await self.client.websocket.disconnect()
+            if self.web_socket.state.credentials is None:
+                await self.web_socket.disconnect()
                 raise ConfigEntryAuthFailed("The ExpTech VIP require re-auth.")
 
             # If re-subscribe is required, an exception is raised
             if len(subscrib_service) == 0:
-                await self.client.websocket.disconnect()
+                await self.web_socket.disconnect()
                 raise ConfigEntryAuthFailed("The ExpTech VIP has expired, Please re-subscribe.")
 
             # Handle incoming WebSocket messages
-            resp = await self.client.websocket.recv()
+            resp = await self.web_socket.recv()
             await self._handle(resp)
 
             # Cancel the http fetch if WebSocket is running
-            if self.client.use_http_fallback:
-                self.client.use_http_fallback = False
-                self.update_interval = self.conf.fast_interval
-                self.client.update_interval = self.update_interval
+            if self.web_socket.fallback_mode:
+                self.web_socket.fallback_mode = False
+                self.update_interval = self.config_entry.runtime_data.update_interval
                 await self.server_status_event(
                     event_fire=True,
                 )
                 _LOGGER.info("WebSocket fetching data recovered")
 
         except (ConnectionError, RuntimeError) as ex:
-            self.client.use_http_fallback = True
+            self.web_socket.fallback_mode = True
             await self.server_status_event(
-                event_fire=self.client.retry_backoff == 1,
-                node=self.client.http.api_node,
-                unavailable=self.client.websocket.api_node,
+                event_fire=self.web_socket.retry_backoff == 1,
+                # node=self.web_socket.api_node,
+                unavailable=self.web_socket.api_node,
             )
-            self.client.retry_backoff += 1
+            self.web_socket.retry_backoff += 1
             _LOGGER.warning("WebSocket error: %s, falling back to HTTP", str(ex))
             return False
 
+        self.update_interval = self.config_entry.runtime_data.update_interval
         return True
 
     async def _handle(self, resp: dict[str, Any]) -> None:
@@ -275,7 +204,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
         match event_type:
             case "eew":
                 data: dict[str, Any] = resp.get("data", {})
-                flag = await self.store.load_recent_data(data)
+                flag = await self.data_client.load_recent_data(data)
 
                 # Event bus fired
                 if flag:
@@ -287,7 +216,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
             case "report":
                 data: dict[str, Any] = resp.get("data", {})
-                flag = await self.store.load_report_data(data)
+                flag = await self.data_client.load_report_data(data)
 
                 # Event bus fired
                 if flag:
@@ -298,22 +227,24 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                     )
 
             case "intensity":
+                coordinator_data = self.data
                 resp.pop("type", None)
-                self.store.coordinator_data["recent"]["intensity"] = resp
+                coordinator_data["recent"]["intensity"] = resp
                 _LOGGER.debug("Intensity data: %s", resp)
-                self.async_set_updated_data(self.store.coordinator_data)
+                self.async_set_updated_data(coordinator_data)
 
             case "tsunami":
+                coordinator_data = self.data
                 tsunami_data: dict = resp.get("data", {})
                 tsunami_data.setdefault("time", resp.get("time", 0))
-                self.store.coordinator_data["recent"]["tsunami"] = tsunami_data
+                coordinator_data["recent"]["tsunami"] = tsunami_data
                 _LOGGER.debug("Tsunami Data: %s", tsunami_data)
-                self.async_set_updated_data(self.store.coordinator_data)
+                self.async_set_updated_data(coordinator_data)
 
     async def server_status_event(self, **kwargs):
         """Server status update trigger event."""
-        server_status = await self.client.server_status(**kwargs)
-        protocol, _ = await self.client.api_node()
+        server_status = await self.data_client.server_status(**kwargs)
+        protocol, _ = await self.data_client.api_node()
 
         event_data = {
             "type": "server_status",
@@ -326,3 +257,30 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
             f"{DOMAIN}_status",
             event_data,
         )
+
+    def websocket_is_online(self):
+        if self.web_socket is None:
+            return False
+
+        ws_state = self.web_socket.state
+        return ws_state.is_running and ws_state.subscrib_service
+
+    def retry_backoff(self, retry):
+        new_interval = min(
+            BASE_INTERVAL * retry,
+            MAX_INTERVAL,
+        )
+        self.update_interval = new_interval
+        _LOGGER.error(
+            "Update failed, next attempt in %s seconds",
+            new_interval.total_seconds(),
+        )
+        raise UpdateFailed
+
+    @property
+    def http_client(self):
+        return self.config_entry.runtime_data.http_client
+
+    @property
+    def web_socket(self):
+        return self.config_entry.runtime_data.web_socket

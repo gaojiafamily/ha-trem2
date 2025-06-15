@@ -82,15 +82,15 @@ TW_MAP_SVG = {
     "legend": """
         <g id="legend" transform="translate(10, 900)" font-family="Noto Sans TC, sans-serif">
           <rect x="0" y="-240" width="80" height="270" fill="#000"/>
-          <rect x="10" y="5" width="20" height="20" fill="#387FFF"/><text x="40" y="15.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">1級</text>
-          <rect x="10" y="-25" width="20" height="20" fill="#244FD0"/><text x="40" y="-15.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">2級</text>
-          <rect x="10" y="-55" width="20" height="20" fill="#35BF56"/><text x="40" y="-45.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">3級</text>
-          <rect x="10" y="-85" width="20" height="20" fill="#F8F755"/><text x="40" y="-75.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">4級</text>
-          <rect x="10" y="-115" width="20" height="20" fill="#FFC759"/><text x="40" y="-105.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">5弱</text>
-          <rect x="10" y="-145" width="20" height="20" fill="#FF9935"/><text x="40" y="-135.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">5強</text>
-          <rect x="10" y="-175" width="20" height="20" fill="#DF443B"/><text x="40" y="-165.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">6弱</text>
-          <rect x="10" y="-205" width="20" height="20" fill="#7B170F"/><text x="40" y="-195.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">6強</text>
-          <rect x="10" y="-235" width="20" height="20" fill="#7237C1"/><text x="40" y="-225.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">7級</text>
+          <rect x="10" y="5" width="20" height="20" fill="#003264"/><text x="40" y="15.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">1級</text>
+          <rect x="10" y="-25" width="20" height="20" fill="#0064C8"/><text x="40" y="-15.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">2級</text>
+          <rect x="10" y="-55" width="20" height="20" fill="#1E9632"/><text x="40" y="-45.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">3級</text>
+          <rect x="10" y="-85" width="20" height="20" fill="#FFC800"/><text x="40" y="-75.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">4級</text>
+          <rect x="10" y="-115" width="20" height="20" fill="#FF9600"/><text x="40" y="-105.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">5弱</text>
+          <rect x="10" y="-145" width="20" height="20" fill="#FF6400"/><text x="40" y="-135.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">5強</text>
+          <rect x="10" y="-175" width="20" height="20" fill="#FF0000"/><text x="40" y="-165.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">6弱</text>
+          <rect x="10" y="-205" width="20" height="20" fill="#C00000"/><text x="40" y="-195.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">6強</text>
+          <rect x="10" y="-235" width="20" height="20" fill="#9600C8"/><text x="40" y="-225.0" fill="#fff" stroke="none" font-size="14" alignment-baseline="middle">7級</text>
         </g>
     """,  # noqa: E501
     "copyright": """
