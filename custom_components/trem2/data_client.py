@@ -131,32 +131,34 @@ class Trem2DataClient:
 
         return True
 
-    async def load_eew_data(self, report_id: str | None = None) -> dict:
+    async def load_eew_data(self, newer_id: str | None = None) -> dict:
         """Get the report or latest earthquake data."""
         coordinator_data = self.coordinator.data
         eew_data: dict = coordinator_data["recent"]["earthquake"]
         simulate_data: dict = coordinator_data["recent"]["simulating"]
         report_data: dict = coordinator_data["report"]["recent"]
+        intensity_data: dict = coordinator_data["recent"]["intensity"]
 
         # Return simulate data if simulating
         if simulate_data:
+            simulate_data["intensity"], simulate_data["list"] = await self.load_intensitys(simulate_data)
             return simulate_data
 
-        # Return report data if selected
-        if report_id:
+        # Check if newer_id exists in the report cache, Or use the latest earthquake data ID
+        if newer_id is None:
+            newer_id = eew_data.get("id")
+        else:
             for data in coordinator_data["report"]["cache"]:
-                if data["id"] == report_id:
+                if data["id"] == newer_id:
                     report_data = data
                     break
 
             # If the report ID matches the earthquake data, return the earthquake data
-            if report_id == eew_data.get("id"):
+            if newer_id == eew_data.get("id"):
                 return eew_data
-        else:
-            report_id = eew_data.get("id")
 
         # If the report data is newer than the earthquake data, update the earthquake data
-        if report_data.get("time", 1) > eew_data.get("time", 0) or report_id != eew_data.get("id"):
+        if report_data.get("time", 1) > eew_data.get("time", 0) or newer_id != eew_data.get("id"):
             eew_data["intensity"], eew_data["list"] = await self.load_intensitys(eew_data, report_data)
             eew_data["id"] = report_data.get("id")
             eew_data["author"] = report_data.get("author")
@@ -168,6 +170,16 @@ class Trem2DataClient:
             eew_data["eq"] = eq
             eew_data["time"] = eq.get("time")
             eew_data["md5"] = report_data.get("md5")
+            return eew_data
+
+        # If the intensity data id does not match the report trem id
+        if (id_ := intensity_data.get("id")) and id_ != report_data.get("trem"):
+            intensitys = {}
+            intensitys["intensity"], intensitys["list"] = await self.load_intensitys()
+            intensitys["id"] = intensity_data.get("id")
+            intensitys["author"] = intensity_data.get("author")
+            intensitys["max"] = intensity_data.get("max")
+            return intensitys
 
         return eew_data
 
@@ -195,17 +207,19 @@ class Trem2DataClient:
             report = {}
 
         eew_id = eew.get("id")
-        intensitys_data: dict = coordinator_data["recent"]["intensity"]
+        intensity_data: dict = coordinator_data["recent"]["intensity"]
         report_intensity: dict | None = report.get("list")
         report_id = report.get("id")
+        intensity = eew.get("intensity")
+        lists = eew.get("lists")
 
         # Reset intensity id if not equal report id
         if eew_id != report_id:
-            intensitys_data.pop("id", None)
+            intensity_data.pop("id", None)
 
         # Case 1: Comparison of intensity and report data
-        intensitys_data.setdefault("id", report.get("trem"))
-        if report_intensity and intensitys_data.get("id") == report.get("trem"):
+        intensity_data.setdefault("id", report.get("trem"))
+        if report_intensity and intensity_data.get("id") == report.get("trem"):
             county_list = {v: k for k, v in ATTR_COUNTY.items()}
             intensity = {county_list[county]: detail["int"] for county, detail in report_intensity.items()}
             lists = {
@@ -217,8 +231,8 @@ class Trem2DataClient:
             return intensity, lists
 
         # Case 2: Preferred intensity data
-        intensity = await self.convert_zip3_county(intensitys_data)
-        lists = await self.convert_zip3_town(intensitys_data)
+        intensity = intensity or await self.convert_zip3_county(intensity_data)
+        lists = lists or await self.convert_zip3_town(intensity_data)
 
         return intensity, lists
 

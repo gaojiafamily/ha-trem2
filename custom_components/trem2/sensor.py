@@ -160,34 +160,35 @@ class NotificationSensor(SensorEntity):
             return
 
         try:
-            selected = getattr(self.config_entry.runtime_data, "selected_option", None)
-            notification = await self.coordinator.data_client.load_eew_data(selected)
-            eew: dict = notification.get("eq", {})
-            time: Any | None = eew.get("time")
-            time_of_occurrence = ""
+            # Get the latest earthquake data
+            report_id = getattr(self.config_entry.runtime_data, "selected_option", None)
+            eew = await self.coordinator.data_client.load_eew_data(report_id)
+            eq: dict = eew.get("eq", {})
+
+            if self._state == eew.get("id"):
+                return
 
             # formatted the time of occurrence
-            if time:
-                formatted_time = datetime.fromtimestamp(
-                    round(time / 1000),
+            if "time" in eq:
+                time_of_occurrence = datetime.fromtimestamp(
+                    round(eq["time"] / 1000),
                     TZ_UTC,
                 ).astimezone(TZ_TW)
-                time_of_occurrence = formatted_time.strftime("%Y/%m/%d %H:%M:%S")
+            else:
+                time_of_occurrence = datetime.now()
 
-            # Check state change
-            if self._state != notification["id"]:
-                self._attr_value[ATTR_AUTHOR] = notification.get("author", eew.get("author", ""))
-                self._attr_value[ATTR_ID] = notification["id"]
-                self._attr_value[ATTR_LOCATION] = eew.get("loc", "")
-                self._attr_value[ATTR_LONGITUDE] = eew.get("lon", "")
-                self._attr_value[ATTR_LATITUDE] = eew.get("lat", "")
-                self._attr_value[ATTR_MAG] = eew.get("mag", "")
-                self._attr_value[ATTR_DEPTH] = eew.get("depth", "")
-                self._attr_value[ATTR_TIME] = time_of_occurrence
-                self._attr_value[ATTR_LIST] = notification.get("list")
+            # Update the state
+            self._attr_value[ATTR_AUTHOR] = eew.get("author", eq.get("author", ""))
+            self._attr_value[ATTR_ID] = eew["id"]
+            self._attr_value[ATTR_LOCATION] = eq.get("loc", "")
+            self._attr_value[ATTR_LONGITUDE] = eq.get("lon", "")
+            self._attr_value[ATTR_LATITUDE] = eq.get("lat", "")
+            self._attr_value[ATTR_MAG] = eq.get("mag", "")
+            self._attr_value[ATTR_DEPTH] = eq.get("depth", "")
+            self._attr_value[ATTR_TIME] = time_of_occurrence.strftime("%Y/%m/%d %H:%M:%S")
+            self._attr_value[ATTR_LIST] = eew.get("list")
 
-                # Update the state
-                self._state = notification["id"]
+            self._state = eew["id"]
         except TypeError as ex:
             _LOGGER.error("TypeError occurred while processing earthquake data: %s", ex)
         except AttributeError as ex:

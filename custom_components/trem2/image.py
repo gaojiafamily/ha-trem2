@@ -146,7 +146,6 @@ class MonitoringImage(ImageEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra attributes."""
         self.data.attributes = {}
-        self.data.attributes[ATTR_ATTRIBUTION] = ATTRIBUTION
         for k, v in self.data.attr_value.items():
             self.data.attributes[k] = v
 
@@ -157,22 +156,20 @@ class MonitoringImage(ImageEntity):
         if not self.coordinator.last_update_success:
             return
 
-        # Get the latest earthquake data
-        selected = getattr(self.config_entry.runtime_data, "selected_option", None)
-        eq_data = await self.coordinator.data_client.load_eew_data(selected)
-        eq_id = eq_data.get("id", self.data.image_id)
-        if self.coordinator.data["recent"]["simulating"]:
-            eq_id = f"#{eq_data['id']}#"
+        try:
+            # Get the latest earthquake data
+            report_id = getattr(self.config_entry.runtime_data, "selected_option", None)
+            eew = await self.coordinator.data_client.load_eew_data(report_id)
 
-        # Get the latest notification data and Check state change
-        if self.data.image_id != eq_id:
-            self.data.intensitys = {}
+            # Check state change
+            if self.data.image_id == eew.get("id"):
+                return
 
             # Calculate the intensity
-            match eq_data:
+            match eew:
                 case {"intensity": intensitys}:
                     self.data.intensitys = intensitys
-                    self.data.attr_value = eq_data["list"]
+                    self.data.attr_value = eew["list"]
 
                 case {"eq": eq_info}:
                     self.data.intensitys = get_calculate_intensity(eq_info)
@@ -182,40 +179,38 @@ class MonitoringImage(ImageEntity):
                         if round_intensity(v) > 0
                     }
 
-        # Load intensity data
-        entitys = self.hass.data[DOMAIN][self.config_entry.entry_id]
-        if "intensity" in entitys and entitys["intensity"].is_on:
-            intensity_data: dict = self.coordinator.data["recent"]["intensity"]
-            intensity_id = (
-                intensity_data.get("id", "XXXXXX"),
-                intensity_data.get("serial"),
+            # Draw map
+            await self._drawing_map(
+                eew,
+                eew.get("id", self.data.image_id),
             )
-            eq_id = "-".join(map(str, intensity_id))
-            self.data.intensitys, _ = await self.coordinator.data_client.load_intensitys()
-            eq_data = intensity_data
-            eq_data["eq"]["max"] = intensity_data["max"]
-
-        # Draw map
-        await self._drawing_map(eq_data, eq_id)
+        except TypeError as ex:
+            _LOGGER.error("TypeError occurred while processing earthquake data: %s", ex)
+        except AttributeError as ex:
+            _LOGGER.error(
+                "AttributeError occurred while accessing earthquake data: %s",
+                ex,
+                exc_info=ex,
+            )
 
         # Update the attributes
         self.async_write_ha_state()
 
-    async def _drawing_map(self, eq_data, eq_id):
+    async def _drawing_map(self, eew, eq_id):
         """Draw Monitoring Image."""
         assets_path = f"custom_components/{DOMAIN}/assets"
 
         # QR Code data
         bg_path = self.hass.config.path(f"{assets_path}/brand.svg")
         url = OFFICIAL_URL
-        if "md5" in eq_data:
+        if "md5" in eew:
             bg_path = self.hass.config.path(f"{assets_path}/cwa_logo.svg")
             url = f"https://www.cwa.gov.tw/V8/C/E/EQ/EQ{eq_id}.html"
 
         # Draw the isoseismal map
         svg_cont = draw_isoseismal_map(
             self.data.intensitys,
-            eq_data,
+            eew,
             eq_id,
             bg_path,
             url,

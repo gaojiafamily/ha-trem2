@@ -29,8 +29,8 @@ class Trem2RuntimeData:
     http_client: ExpTechHTTPClient
     web_socket: ExpTechWSClient | None = None
     params: dict[str, Any] = field(default_factory=dict[str, Any])
-    fetch_report = False
 
+    fetch_report: bool | None = None
     selected_option: str | None = None
 
 
