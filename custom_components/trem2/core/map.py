@@ -187,9 +187,12 @@ def latlon_to_svg(
     return max(0, min(xy[0], viewbox[0])), max(0, min(xy[1], viewbox[1]))
 
 
-def is_offshore(latlong: tuple[float, float]) -> str | None:
+def is_offshore(latlong: tuple[float, float] | tuple[None, None]) -> str | None:
     """Check if the epicenter is offshore."""
     lat, lon = latlong
+    if lat is None or lon is None:
+        return None
+
     is_taiwan_mainland = (
         (118 <= lon <= 122 and 21.5 <= lat <= 25.5)
         or (119 <= lon <= 119.8 and 23 <= lat <= 23.8)
@@ -197,7 +200,7 @@ def is_offshore(latlong: tuple[float, float]) -> str | None:
         or (119.8 <= lon <= 120.5 and 26 <= lat <= 26.5)
     )
     if is_taiwan_mainland:
-        return None  # 臺灣本島
+        return "Mainland"  # 臺灣本島
 
     match (lat, lon):
         case (lat, lon) if lat > 25.5:
@@ -435,30 +438,25 @@ def _draw_intensitys(svg_parts: list, intensitys: dict):
 def _draw_epicenter(svg_parts: list, eq_data: dict, eq_id, county_name, max_intensity):
     """Draw the epicenter and earthquake information."""
     eq: dict = eq_data.get("eq", {})
+    epi_latlong = (eq.get("lat"), eq.get("lon"))
+    epicenter = is_offshore(epi_latlong)
 
-    if eq_id == "XXXXXXX-X":
-        eq_id = "震動速報"
-        loc_main = "未知區域"
-        loc_spec = "震源調查中"
-    else:
-        epi_latlong = (
-            eq.get("lat", TAIWAN_CENTER[0]),
-            eq.get("lon", TAIWAN_CENTER[1]),
-        )
-
-        offshore_area = is_offshore(epi_latlong)
-        if offshore_area:
+    match epicenter:
+        case None:
+            loc_main = "未知區域"
+            loc_spec = "震源調查中"
+        case "Mainland":
+            epicenter_x, epicenter_y = latlon_to_svg(epi_latlong)
+            _draw_cross(svg_parts, epicenter_x, epicenter_y)
+            loc_main, loc_spec = _parse_location(eq.get("loc"), epi_latlong)
+        case _:
             svg_parts.append(
                 OFFSHORE_ZONES.get(
-                    offshore_area,
+                    epicenter,
                     OFFSHORE_ZONES["Sea"],
                 ),
             )
-        else:
-            epicenter_x, epicenter_y = latlon_to_svg(epi_latlong)
-            _draw_cross(svg_parts, epicenter_x, epicenter_y)
-
-        loc_main, loc_spec = _parse_location(eq.get("loc"), epi_latlong)
+            loc_main, loc_spec = _parse_location(eq.get("loc"), epi_latlong)
 
     formatted_time = datetime.fromtimestamp(
         round(
@@ -470,7 +468,6 @@ def _draw_epicenter(svg_parts: list, eq_data: dict, eq_id, county_name, max_inte
         ),
         TZ_UTC,
     ).astimezone(TZ_TW)
-
     svg_parts.append(
         TW_MAP_SVG["info"].format(
             eq_id=eq_id,
@@ -493,7 +490,7 @@ def _draw_epicenter(svg_parts: list, eq_data: dict, eq_id, county_name, max_inte
                     "author",
                     eq.get(
                         "author",
-                        "ExpTech",
+                        "Unknown",
                     ),
                 )
             ),
@@ -525,12 +522,11 @@ def _draw_cross(svg_parts: list, epicenter_x, epicenter_y):
 def _parse_location(loc: str | None, epi_latlong: tuple | None = None) -> tuple[str, str]:
     """Parse location into main and specific parts."""
     if loc is None:
-        loc_main = "震源調查中"
-        loc_spec = "未知區域"
-    else:
-        loc_parts = loc.split("(")
-        loc_main = loc_parts[0].strip() if len(loc_parts) > 0 else loc
-        loc_spec = loc_parts[1].strip(")") if len(loc_parts) > 1 else _format_latlong(epi_latlong)
+        return "震源調查中", "未知區域"
+
+    loc_parts = loc.split("(")
+    loc_main = loc_parts[0].strip() if len(loc_parts) > 0 else loc
+    loc_spec = loc_parts[1].strip(")") if len(loc_parts) > 1 else _format_latlong(epi_latlong)
 
     return loc_main, loc_spec
 

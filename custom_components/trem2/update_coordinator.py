@@ -231,6 +231,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
                 resp.pop("type", None)
                 coordinator_data["recent"]["intensity"] = resp
                 _LOGGER.debug("Intensity data: %s", resp)
+                setattr(self.config_entry.runtime_data, "selected_option", None)
                 self.async_set_updated_data(coordinator_data)
 
             case "tsunami":

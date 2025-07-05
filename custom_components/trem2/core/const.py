@@ -104,5 +104,6 @@ PROVIDERS = {
     "scdzj": "中國四川省地震局 (SCDZJ)",
     "fjdzj": "中國福建省地震局 (FJDZJ)",
     "test": "模擬測試 (TEST)",
+    "trem": "ExpTech 震度速報 (TREM)",
 }
 FOOT_NOTE = "實際結果以中央氣象署公佈的內容為準"

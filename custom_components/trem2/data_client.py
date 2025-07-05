@@ -51,14 +51,11 @@ class Trem2DataClient:
 
         # Check earthquake data if not None
         if data:
-            try:
-                cache: list[dict[str, Any]] = coordinator_data["recent"]["cache"]
-                seen = {(d["id"], d.get("serial", "")) for d in cache}
-                key = (data["id"], data.get("serial", ""))
-                if key in seen:
-                    return False
-            except KeyError as e:
-                _LOGGER.error(e)
+            cache: list[dict[str, Any]] = coordinator_data["recent"]["cache"]
+            seen = {(d["id"], d.get("serial", "")) for d in cache}
+            key = (data["id"], data.get("serial", ""))
+            if key in seen:
+                return False
 
             # Stored earthquake data to runtime data
             data.pop("type", None)
@@ -77,6 +74,7 @@ class Trem2DataClient:
 
             # Abort earthquake simulating and Update coordinator data
             coordinator_data["recent"]["simulating"] = {}
+            setattr(self.config_entry.runtime_data, "selected_option", None)
             self.coordinator.async_set_updated_data(coordinator_data)
 
         return True
@@ -106,7 +104,7 @@ class Trem2DataClient:
                 parts = result.groups()
                 data["id"] = "-".join(parts)
                 data.setdefault("author", "cwa")
-            data.setdefault("author", "ExpTechTW")
+            data.setdefault("author", "Unknown")
 
             # Check earthquake data if not exist
             cache: list[dict[str, Any]] = coordinator_data["report"]["cache"]
@@ -127,16 +125,19 @@ class Trem2DataClient:
             )
 
             # Update coordinator data
+            coordinator_data["recent"]["simulating"] = {}
+            setattr(self.config_entry.runtime_data, "selected_option", None)
             self.coordinator.async_set_updated_data(coordinator_data)
 
         return True
 
-    async def load_eew_data(self, newer_id: str | None = None) -> dict:
+    async def load_eew_data(self, selected_id: str | None = None) -> dict:
         """Get the report or latest earthquake data."""
         coordinator_data = self.coordinator.data
         eew_data: dict = coordinator_data["recent"]["earthquake"]
         simulate_data: dict = coordinator_data["recent"]["simulating"]
         report_data: dict = coordinator_data["report"]["recent"]
+        report_cache: list = coordinator_data["report"]["cache"]
         intensity_data: dict = coordinator_data["recent"]["intensity"]
 
         # Return simulate data if simulating
@@ -144,21 +145,13 @@ class Trem2DataClient:
             simulate_data["intensity"], simulate_data["list"] = await self.load_intensitys(simulate_data)
             return simulate_data
 
-        # Check if newer_id exists in the report cache, Or use the latest earthquake data ID
-        if newer_id is None:
-            newer_id = eew_data.get("id")
-        else:
+        # Return report data if selected
+        if selected_id is not None:
             for data in coordinator_data["report"]["cache"]:
-                if data["id"] == newer_id:
+                if data["id"] == selected_id:
                     report_data = data
                     break
 
-            # If the report ID matches the earthquake data, return the earthquake data
-            if newer_id == eew_data.get("id"):
-                return eew_data
-
-        # If the report data is newer than the earthquake data, update the earthquake data
-        if report_data.get("time", 1) > eew_data.get("time", 0) or newer_id != eew_data.get("id"):
             eew_data["intensity"], eew_data["list"] = await self.load_intensitys(eew_data, report_data)
             eew_data["id"] = report_data.get("id")
             eew_data["author"] = report_data.get("author")
@@ -170,18 +163,25 @@ class Trem2DataClient:
             eew_data["eq"] = eq
             eew_data["time"] = eq.get("time")
             eew_data["md5"] = report_data.get("md5")
+
             return eew_data
 
-        # If the intensity data id does not match the report trem id
-        if (id_ := intensity_data.get("id")) and id_ != report_data.get("trem"):
-            intensitys = {}
+        # If the intensity data id does not match the report
+        known_intensity = [report["trem"] for report in report_cache if "trem" in report]
+        if (id_ := intensity_data.get("id")) and id_ not in known_intensity:
+            intensitys = eew_data.copy()
             intensitys["intensity"], intensitys["list"] = await self.load_intensitys()
-            intensitys["id"] = intensity_data.get("id")
-            intensitys["author"] = intensity_data.get("author")
-            intensitys["max"] = intensity_data.get("max")
-            return intensitys
 
-        return eew_data
+            if intensity_data.get("id") > eew_data.get("time", 0):
+                for key in ("eq", "final", "md5"):
+                    intensitys.pop(key, None)
+
+                intensitys["id"] = intensity_data.get("id")
+                intensitys["time"] = intensity_data.get("id")
+                intensitys["author"] = intensity_data.get("author")
+                intensitys["max"] = intensity_data.get("max")
+
+            return intensitys
 
     async def load_intensitys(
         self,
