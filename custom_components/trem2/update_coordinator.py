@@ -102,7 +102,7 @@ class Trem2UpdateCoordinator(DataUpdateCoordinator):
 
         if self.web_socket and self.web_socket.retry_backoff > 0:
             self.retry_backoff(self.web_socket.retry_backoff)
-            self.web_socket.unavailables.append(self.web_socket.api_node)
+            self.web_socket.unavailables.append(self.web_socket.api_node or "---")
             await self.web_socket.initialize_route()
 
         # Fetch report data

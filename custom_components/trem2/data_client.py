@@ -126,7 +126,7 @@ class Trem2DataClient:
 
             # Update coordinator data
             coordinator_data["recent"]["simulating"] = {}
-            setattr(self.config_entry.runtime_data, "selected_option", None)
+            setattr(self.config_entry.runtime_data, "selected_option", data["id"])
             self.coordinator.async_set_updated_data(coordinator_data)
 
         return True
@@ -145,43 +145,43 @@ class Trem2DataClient:
             simulate_data["intensity"], simulate_data["list"] = await self.load_intensitys(simulate_data)
             return simulate_data
 
-        # Return report data if selected
-        if selected_id is not None:
-            for data in coordinator_data["report"]["cache"]:
-                if data["id"] == selected_id:
-                    report_data = data
-                    break
-
-            eew_data["intensity"], eew_data["list"] = await self.load_intensitys(eew_data, report_data)
-            eew_data["id"] = report_data.get("id")
-            eew_data["author"] = report_data.get("author")
-            eew_data.pop("serial", None)
-            eq: dict = eew_data.get("eq", {})
-            for key in ("lat", "lon", "depth", "loc", "mag", "time"):
-                eq[key] = report_data.get(key)
-            eq["max"] = report_data.get("int")
-            eew_data["eq"] = eq
-            eew_data["time"] = eq.get("time")
-            eew_data["md5"] = report_data.get("md5")
-
-            return eew_data
-
-        # If the intensity data id does not match the report
         known_intensity = [report["trem"] for report in report_cache if "trem" in report]
-        if (id_ := intensity_data.get("id")) and id_ not in known_intensity:
-            intensitys = eew_data.copy()
-            intensitys["intensity"], intensitys["list"] = await self.load_intensitys()
+        match (intensity_data.get("id"), selected_id):
+            case intensity_id, _ if intensity_id and intensity_id not in known_intensity:
+                intensitys = eew_data.copy()
+                intensitys["intensity"], intensitys["list"] = await self.load_intensitys()
 
-            if intensity_data.get("id") > eew_data.get("time", 0):
-                for key in ("eq", "final", "md5"):
-                    intensitys.pop(key, None)
+                if intensity_data.get("id") > eew_data.get("time", 0):
+                    for key in ("eq", "final", "md5"):
+                        intensitys.pop(key, None)
 
-                intensitys["id"] = intensity_data.get("id")
-                intensitys["time"] = intensity_data.get("id")
-                intensitys["author"] = intensity_data.get("author")
-                intensitys["max"] = intensity_data.get("max")
+                    intensitys["id"] = intensity_id
+                    intensitys["time"] = intensity_id
+                    intensitys["author"] = intensity_data.get("author")
+                    intensitys["max"] = intensity_data.get("max")
 
-            return intensitys
+                return intensitys
+            case (_, report_id) if report_id:
+                for data in coordinator_data["report"]["cache"]:
+                    if data["id"] == report_id:
+                        report_data = data
+                        break
+
+                eew_data["id"] = report_id
+                eew_data["author"] = report_data.get("author")
+                eew_data.pop("serial", None)
+                eq: dict = eew_data.get("eq", {})
+                for key in ("lat", "lon", "depth", "loc", "mag", "time"):
+                    eq[key] = report_data.get(key)
+                eq["max"] = report_data.get("int")
+                eew_data["eq"] = eq
+                eew_data["time"] = eq.get("time")
+                eew_data["md5"] = report_data.get("md5")
+
+        if "intensity" not in eew_data or "list" not in eew_data:
+            eew_data["intensity"], eew_data["list"] = await self.load_intensitys(eew_data, report_data)
+
+        return eew_data
 
     async def load_intensitys(
         self,
